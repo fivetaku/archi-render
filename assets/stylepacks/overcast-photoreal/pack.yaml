@@ -1,0 +1,41 @@
+id: overcast-photoreal
+version: 1.0.0
+name: 흐린 낮 · 사진사실 외관
+mood: photoreal
+slots:
+  shot_type: eye-level exterior three-quarter view of THIS building, photorealistic architectural photograph
+  materials:
+  - white fine-textured stucco upper volume
+  - dark anodized aluminum window frames
+  - warm oak deck boards
+  - black powder-coated steel stair and railings
+  - black wire-mesh fence
+  - clear low-iron glass balcony
+  camera:
+    lens_mm: 35
+    height: eye level, 1.6 m
+    perspective: straight vertical uprights, no keystoning, horizon at one-third height
+  lighting: soft overcast daylight from a uniformly bright grey-white sky, no direct sun, low-contrast ambient shadows under overhangs only, interior warm pendant lights on at 2700K visible through glass
+  season_weather: late spring, fresh mid-green foliage, dry ground, thin cloud cover
+  entourage:
+  - two seated people on the balcony in muted clothing
+  - one potted fiddle-leaf plant inside
+  - no cars
+  - existing trees kept in place
+  post: neutral color grading, white balance 5600K, no vignetting, no added contrast or saturation
+negative: extra buildings, changed roof shape, added floors, added or removed openings, harsh sun, HDR halos, tilt-shift blur, lens flare, text or watermark
+geometry_lock: Keep the roof shape, the window and door positions, the count of openings and every sign text exactly as drawn; only materials, lighting, sky, vegetation detail and entourage may change.
+keep_fixed: []
+references: []
+backends:
+  gpt-image:
+    path: pumasi --ref
+    aspect_hint: '4:3'
+  grok-imagine-image-2.0:
+    endpoint: /images/edits
+    mask_polarity: alpha0_edit
+samples:
+- samples/sample-01.png
+changelog:
+- date: '2026-09-14'
+  note: 초판 — 트라이얼 cafeA_overcast (gpt-image via pumasi --ref) 검증 프롬프트에서 distill

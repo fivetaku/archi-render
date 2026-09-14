@@ -1,0 +1,1 @@
+Use the attached SketchUp image as the exact source. Keep the geometry, camera angle, proportions, layout and all element positions exactly as shown. Do not add or remove buildings, floors or openings.

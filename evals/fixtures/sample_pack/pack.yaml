@@ -1,0 +1,21 @@
+id: sample-pack   # selftest fixture (schema §7 example) — real packs live in assets/stylepacks/
+version: 1.0.0
+name: 주거 외관 · 흐린 낮 · 사진사실
+mood: photoreal            # photoreal|cinematic|painterly|watercolor|diagram|collage|clay
+slots:                     # keep to 7 or fewer
+  shot_type: "eye-level exterior elevation"
+  materials: ["white stucco", "dark standing-seam metal roof", "oak entrance door", "clear glazing"]
+  camera: {lens_mm: 35, height: "eye level", perspective: "architectural, straight verticals"}
+  lighting: "overcast soft daylight, gentle ambient shadows"
+  season_weather: "late spring, light greenery, dry pavement"
+  entourage: ["two pedestrians", "no cars"]
+  post: "neutral color grading, no vignetting, no HDR halo"
+negative: "extra buildings, changed roof shape, added floors, text, watermark, people looking at camera"
+geometry_lock: "Keep the exact geometry, window and door positions, roof shape and count of openings."
+references: []             # refs/*.jpg style anchors (optional)
+backends:
+  grok-imagine-image-2.0: {endpoint: /images/edits, mask_polarity: alpha0_edit}
+  gpt-image: {via: "pumasi imagen.sh --ref", mask: false}
+samples: []
+changelog:
+  - {date: 2026-09-14, note: "초판 (design doc §7 schema)"}

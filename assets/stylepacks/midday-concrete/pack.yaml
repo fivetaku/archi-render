@@ -1,0 +1,39 @@
+id: midday-concrete
+version: 1.0.0
+name: 정오 맑은 날 · 콘크리트 재질 강조
+mood: photoreal
+slots:
+  shot_type: slightly elevated exterior view of THIS building at midday, material-forward architectural photograph
+  materials:
+  - board-formed concrete facade with sharp plank grain, tie-hole grid and light weathering streaks
+  - exposed smooth concrete side wall
+  - asphalt parking with crisp painted white lines
+  - glass storefront with sky reflections and visible interior
+  - real bamboo and deciduous trees
+  camera:
+    lens_mm: 24
+    height: elevated, 3 m
+    perspective: straight vertical uprights, wide field of view
+  lighting: 'high sun near zenith, 5500K, hard short shadows directly below overhangs, strong texture read on concrete, sky blue #6FA8DC with scattered soft white cumulus'
+  season_weather: early summer, clear sky with a few soft clouds, dry ground, saturated green foliage
+  entourage:
+  - people kept in the same positions with realistic clothing
+  - no additional cars
+  - neighbouring buildings kept exactly as drawn
+  post: neutral grading, white balance 5500K, high dynamic range with no clipped concrete highlights, no vignetting
+negative: extra buildings, changed roof shape, added floors, added or removed openings, HDR halos, over-saturated sky, tilt-shift blur, lens flare, text or watermark
+geometry_lock: Keep the roof shape, the window and door positions, the count of openings and every sign text exactly as drawn; only materials, lighting, sky, vegetation detail and entourage may change.
+keep_fixed: []
+references: []
+backends:
+  gpt-image:
+    path: pumasi --ref
+    aspect_hint: '16:9'
+  grok-imagine-image-2.0:
+    endpoint: /images/edits
+    mask_polarity: alpha0_edit
+samples:
+- samples/sample-01.png
+changelog:
+- date: '2026-09-14'
+  note: 초판 — 트라이얼 cafeB_daylight 검증 프롬프트에서 distill

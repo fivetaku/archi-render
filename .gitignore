@@ -1,0 +1,59 @@
+# Claude Code
+.claude/settings.local.json
+
+# 비밀키/환경 변수 (R16.5 보안 P0)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+credentials/
+
+# PII 3중 방어 (R23, 07-SECURITY_SECRETS.md) — 1·2단: 키워드 + 전용 폴더.
+# 3단(문서 확장자 catch-all)은 도메인에 따라 산출물과 겹칠 수 있어 주석 제공 —
+# PII 문서를 다루는 워크스페이스(계약서·신분증 등)는 반드시 주석 해제하거나 경로를 좁혀 적용.
+*주민*
+*계좌*
+*통장*
+*신분증*
+*개인정보*
+pii/
+private/
+# *.pdf
+# *.hwp
+# *.hwpx
+# *.docx
+# *.xlsx
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# 임시 파일
+*.tmp
+*.temp
+
+# ========================================
+# 데이터 격리 (fail-closed) — R27a / 10-standards/19 §3 패턴 (insane-writer 검증)
+# 원문 소스는 로컬 전용(저작권·PII·불변), 파생 스탬프만 추적한다.
+# ========================================
+70-private/*
+!70-private/README.md
+!70-private/*/
+70-private/*/*
+!70-private/*/meta.md
+
+# ========================================
+# archi-render 렌더 파이프라인 (renders/README.md — LFS-out 정책)
+# renders/ 는 무시(외부 스토리지 동기화). 50-output/*/contact_sheet_*.jpg 는 납품물이라 추적한다.
+# ========================================
+renders/*
+!renders/README.md
+__pycache__/
+*.pyc

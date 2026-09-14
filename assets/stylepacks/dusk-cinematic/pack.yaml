@@ -1,0 +1,39 @@
+id: dusk-cinematic
+version: 1.0.0
+name: 노을 시네마틱 · 젖은 아스팔트 · 틸오렌지
+mood: cinematic
+slots:
+  shot_type: slightly elevated exterior view of THIS building at civil dusk, premium automotive-campaign photograph look
+  materials:
+  - board-formed concrete facade with visible plank grain and tie holes
+  - exposed concrete side wall with subtle rain streaks
+  - wet-look asphalt with painted parking lines and mirror-like reflections
+  - glass storefront with warm interior visible
+  - real bamboo in planters
+  camera:
+    lens_mm: 24
+    height: elevated, 3 m
+    perspective: straight vertical uprights, wide field of view, building occupies the centre two-thirds
+  lighting: 'sun just below the horizon camera-left, sky graded deep blue #1B2A49 at zenith to burnt orange #E8742A at horizon with lit cloud undersides, interior lights on at 2700K spilling amber onto the ground, small recessed uplights at wall bases, long soft shadows'
+  season_weather: early autumn, after rain, puddled ground, dramatic broken clouds, clear air
+  entourage:
+  - people kept in the same positions, silhouetted or side-lit
+  - no additional cars
+  - neighbouring buildings kept exactly as drawn
+  post: cinematic grading with teal shadows and warm amber highlights, mild contrast lift, high dynamic range with no clipped windows, no vignetting
+negative: extra buildings, changed roof shape, added floors, added or removed openings, over-saturated cartoon sunset, lens flare streaks, HDR halos at horizon, tilt-shift blur, text or watermark
+geometry_lock: Keep the roof shape, the window and door positions, the count of openings and every sign text exactly as drawn; only materials, lighting, sky, vegetation detail and entourage may change.
+keep_fixed: []
+references: []
+backends:
+  gpt-image:
+    path: pumasi --ref
+    aspect_hint: '16:9'
+  grok-imagine-image-2.0:
+    endpoint: /images/edits
+    mask_polarity: alpha0_edit
+samples:
+- samples/sample-01.png
+changelog:
+- date: '2026-09-14'
+  note: 초판 — 트라이얼 cafeB_sunset (테슬라 노을 캠페인 레퍼런스를 텍스트로 반영) 검증 프롬프트에서 distill

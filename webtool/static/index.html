@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>archi-render · 렌더 툴</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="dot"></span>archi-render</div>
+  <div class="topbar-meta">
+    <span id="server-status" class="pill">연결 확인 중…</span>
+    <span class="hint">단축키 <kbd>B</kbd> 브러시 · <kbd>E</kbd> 지우개 · <kbd>Z</kbd> 되돌리기</span>
+  </div>
+</header>
+
+<main class="layout">
+  <!-- ───────── 왼쪽: 입력 / 설정 ───────── -->
+  <section class="col col-left">
+    <div class="panel">
+      <h2>1. 캡처 이미지</h2>
+      <div id="dropzone" class="dropzone" tabindex="0">
+        <img id="capture-preview" alt="" hidden>
+        <div class="dz-text">
+          <strong>SketchUp 캡처를 끌어다 놓기</strong>
+          <span>또는 클릭해서 파일 선택 (PNG · JPG · WebP)</span>
+        </div>
+        <input id="file-input" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+      </div>
+      <div id="capture-info" class="muted small"></div>
+    </div>
+
+    <div class="panel">
+      <h2>2. 프로젝트 / 샷</h2>
+      <div class="row">
+        <label>프로젝트 <input id="project" type="text" value="demo" spellcheck="false"></label>
+        <label>샷 <input id="shot" type="text" value="S01" spellcheck="false"></label>
+      </div>
+      <p class="muted small">영문·숫자·<code>-</code>·<code>_</code>만. 저장 위치: <code>assets/captures/&lt;프로젝트&gt;/&lt;샷&gt;/</code></p>
+    </div>
+
+    <div class="panel">
+      <h2>3. 스타일 팩</h2>
+      <div id="pack-grid" class="pack-grid"><div class="muted small">불러오는 중…</div></div>
+    </div>
+
+    <div class="panel">
+      <h2>4. 옵션</h2>
+      <div id="options" class="options"></div>
+      <label class="block">고정 유지 (keep_fixed)
+        <textarea id="keep_fixed" rows="3" placeholder="예) 건물 매스와 창 분할은 그대로&#10;전면 도로 폭 유지"></textarea>
+      </label>
+      <div class="row">
+        <label>비율 <select id="aspect"></select></label>
+        <fieldset class="radio-group">
+          <legend>백엔드</legend>
+          <label><input type="radio" name="backend" value="gpt" checked> gpt</label>
+          <label><input type="radio" name="backend" value="grok"> grok</label>
+        </fieldset>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>5. 프롬프트 미리보기</h2>
+      <pre id="prompt-preview" class="prompt">팩을 선택하면 프롬프트가 여기에 표시됩니다.</pre>
+      <div class="actions">
+        <button id="btn-render" class="primary" disabled>렌더</button>
+        <button id="btn-save-pack" class="ghost">팩으로 저장</button>
+      </div>
+      <div id="render-status" class="status"></div>
+    </div>
+  </section>
+
+  <!-- ───────── 오른쪽: 결과 / 수정 ───────── -->
+  <section class="col col-right">
+    <div class="panel viewer-panel">
+      <div class="viewer-head">
+        <div id="rev-tabs" class="tabs"><span class="muted small">리비전 없음</span></div>
+        <div class="viewer-tools">
+          <label class="toggle"><input id="compare-toggle" type="checkbox"> 비교</label>
+          <select id="compare-mode" disabled>
+            <option value="slider">슬라이더</option>
+            <option value="side">나란히</option>
+          </select>
+          <label class="toggle"><input id="fix-toggle" type="checkbox"> Fix 모드</label>
+        </div>
+      </div>
+
+      <div id="viewer" class="viewer">
+        <div class="stage" id="stage">
+          <img id="img-render" class="stage-img" alt="렌더 결과">
+          <div id="compare-wrap" class="compare-wrap" hidden>
+            <img id="img-input" class="stage-img" alt="입력 캡처">
+            <div id="compare-handle" class="compare-handle"></div>
+          </div>
+          <canvas id="mask-canvas" class="mask-canvas" hidden></canvas>
+          <div id="stage-empty" class="stage-empty">렌더 결과가 여기에 표시됩니다</div>
+        </div>
+        <div id="side-input" class="stage side" hidden>
+          <img id="img-input-side" class="stage-img" alt="입력 캡처">
+          <span class="corner">입력</span>
+        </div>
+      </div>
+
+      <div id="rev-meta" class="rev-meta muted small"></div>
+    </div>
+
+    <div id="fix-panel" class="panel fix-panel" hidden>
+      <h2>Fix — 영역 수정 <span class="muted small">(마스크: 흰색 255 = 수정 영역, 원본 해상도로 저장)</span></h2>
+      <div class="toolbar">
+        <button data-tool="brush" class="tool active" title="브러시 (B)">브러시</button>
+        <button data-tool="eraser" class="tool" title="지우개 (E)">지우개</button>
+        <button data-tool="rect" class="tool" title="사각 선택">사각</button>
+        <label class="inline">크기 <input id="brush-size" type="range" min="4" max="200" value="40"> <span id="brush-size-val">40</span></label>
+        <button id="btn-undo" class="ghost" title="되돌리기 (Z)">되돌리기</button>
+        <button id="btn-clear" class="ghost">모두 지우기</button>
+      </div>
+      <textarea id="fix-instruction" rows="2" placeholder="이 영역을 어떻게 바꿀지 (예: 외벽을 붉은 벽돌로, 조명은 유지)"></textarea>
+      <div class="actions">
+        <button id="btn-fix" class="primary">영역 수정 (grok)</button>
+        <span class="muted small">gpt 경로는 마스크를 지원하지 않아 Fix는 grok으로 고정</span>
+      </div>
+      <div id="fix-status" class="status"></div>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="toast" hidden></div>
+<script src="/app.js"></script>
+</body>
+</html>

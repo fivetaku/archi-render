@@ -1,0 +1,52 @@
+{
+  "id": "aerial-drone",
+  "version": "1.0.0",
+  "name": "항공 드론 · 배치도/단지 조감",
+  "mood": "photoreal",
+  "slots": {
+    "shot_type": "aerial drone photograph of THIS site-plan model from the same high oblique angle, every plot, building and path kept in place",
+    "materials": [
+      "realistic clay-tile or standing-seam roofs as drawn",
+      "granite or concrete paving with visible joint pattern",
+      "asphalt parking with painted bays",
+      "mown lawn with mixed grass tones",
+      "trimmed hedges and mature trees with soft canopy shadows"
+    ],
+    "camera": {
+      "lens_mm": 24,
+      "height": "drone, 40 to 60 m",
+      "perspective": "high oblique 45 to 60 degrees down, no lens distortion, site fills the frame"
+    },
+    "lighting": "late afternoon sun from camera-left at 25 degrees elevation, 4500K, soft long shadows from trees and buildings that reveal plan depth, no blown highlights on roofs",
+    "season_weather": "late spring, clear sky, dry paving, full green canopy",
+    "entourage": [
+      "real parked cars in the drawn bays only",
+      "no added people",
+      "no added buildings outside the drawn plots"
+    ],
+    "post": "neutral grading, background kept as drawn (plain white if the source is plain white), no vignetting, no tilt-shift miniature blur"
+  },
+  "negative": "extra buildings, changed plot shapes, added roads, filled-in white background, tilt-shift miniature blur, HDR halos, text or watermark",
+  "geometry_lock": "Keep the roof shape, the window and door positions, the count of openings and every sign text exactly as drawn; only materials, lighting, sky, vegetation detail and entourage may change.",
+  "keep_fixed": [],
+  "references": [],
+  "backends": {
+    "gpt-image": {
+      "path": "pumasi --ref",
+      "aspect_hint": "1:1"
+    },
+    "grok-imagine-image-2.0": {
+      "endpoint": "/images/edits",
+      "mask_polarity": "alpha0_edit"
+    }
+  },
+  "samples": [
+    "samples/sample-01.png"
+  ],
+  "changelog": [
+    {
+      "date": "2026-09-14",
+      "note": "초판 — 트라이얼 siteplan_aerial (gpt) + plaza_golden (grok /images/edits) 검증 프롬프트에서 distill"
+    }
+  ]
+}

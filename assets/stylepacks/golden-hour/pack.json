@@ -1,0 +1,51 @@
+{
+  "id": "golden-hour",
+  "version": "1.0.0",
+  "name": "골든아워 · 따뜻한 저녁 외관",
+  "mood": "photoreal",
+  "slots": {
+    "shot_type": "eye-level exterior three-quarter view of THIS building, photorealistic architectural photograph 30 minutes before sunset",
+    "materials": [
+      "white stucco catching warm light",
+      "warm oak deck boards",
+      "black steel stair and mesh fence",
+      "clear glass with warm interior glow"
+    ],
+    "camera": {
+      "lens_mm": 35,
+      "height": "eye level, 1.6 m",
+      "perspective": "straight vertical uprights, no keystoning"
+    },
+    "lighting": "warm low sun from camera-left at 10 degrees elevation, 3200K, long soft-edged shadows stretching right across the ground, facade planes facing the sun glow amber, shaded planes cool blue-grey, interior lights on at 2700K",
+    "season_weather": "late summer, clear sky fading from pale yellow at horizon to light blue above, dry air, no clouds",
+    "entourage": [
+      "two people seated on the balcony",
+      "no cars",
+      "existing trees kept in place"
+    ],
+    "post": "gentle warm grading, highlights kept below clipping, shadows lifted slightly, no vignetting, no orange-teal split"
+  },
+  "negative": "extra buildings, changed roof shape, added floors, added or removed openings, over-saturated orange sky, HDR halos, lens flare, tilt-shift blur, text or watermark",
+  "geometry_lock": "Keep the roof shape, the window and door positions, the count of openings and every sign text exactly as drawn; only materials, lighting, sky, vegetation detail and entourage may change.",
+  "keep_fixed": [],
+  "references": [],
+  "backends": {
+    "gpt-image": {
+      "path": "pumasi --ref",
+      "aspect_hint": "4:3"
+    },
+    "grok-imagine-image-2.0": {
+      "endpoint": "/images/edits",
+      "mask_polarity": "alpha0_edit"
+    }
+  },
+  "samples": [
+    "samples/sample-01.png"
+  ],
+  "changelog": [
+    {
+      "date": "2026-09-14",
+      "note": "초판 — 트라이얼 cafeA_golden 검증 프롬프트에서 distill; 놀이터 sunset 트라이얼로 조명 어휘 보강"
+    }
+  ]
+}
