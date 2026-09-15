@@ -1,7 +1,19 @@
 /* archi-render webtool — single-file UI, no build step, no CDN. */
 "use strict";
 
-/* ─────────────────────────── option vocabulary (sync with 20-knowledge/stylepacks/OPTIONS.md) */
+/* ─────────────────────────── option vocabulary — OFFLINE FALLBACK.
+   At boot the UI loads the live schema from GET /api/options (= prompt_compose.py --list-options) and
+   rebuilds selects from its `values`/`options`; this constant is only used when that call fails.
+   Keep in sync with 20-knowledge/stylepacks/OPTIONS.md. */
+const GROUP_LABELS = { shot: "샷·카메라", materials: "재질", lighting: "조명", season: "계절·식생", entourage: "엔투라지 상세", context: "컨텍스트", grading: "그레이딩", other: "무드" };
+const KEY_LABELS = { mood: "무드", lighting: "조명", sky: "하늘", interior_lights: "실내등", season_weather: "계절·날씨", vegetation_age: "식생 성숙도", camera: "카메라", tilt: "틸트", materials: "재질 프리셋", people_density: "인물 밀도", people_activity: "인물 동작", car_density: "차량 밀도", car_type: "차량 종류", context: "주변 맥락", material_wear: "재질 마모", tone: "톤", post: "후보정", lens_mm: "렌즈 mm", camera_height_m: "카메라 높이 m" };
+const TOGGLE_LABELS = { people: "사람", cars: "차량", vegetation: "식재", furniture: "가구" };
+/* collapsible sections: merged_into group → section id; fixed section (keep_fixed/aspect) lives in index.html */
+const SECTION_OF = { other: "look", grading: "look", lighting: "light", season: "season", entourage: "people", shot: "camera", context: "context", materials: "context" };
+const SECTION_LABELS = { look: "룩", light: "빛·하늘", season: "계절·식생", people: "사람·차", camera: "카메라", context: "맥락·재질", fixed: "고정" };
+const SECTION_ORDER = ["look", "light", "season", "people", "camera", "context"];
+const FALLBACK_GROUP = { mood: "other", lighting: "lighting", season_weather: "season", camera: "shot", materials: "materials", post: "grading" };
+const SEC_STORE = "archi-render.sections";
 const OPTIONS = {
   selects: [
     { key: "mood",           label: "무드",       values: ["photoreal", "cinematic", "clay", "watercolor", "diagram"] },
@@ -23,6 +35,7 @@ const S = {
   packs: [], pack: null, capture: null, captureUrl: null,
   revisions: [], current: null, busy: false,
   tool: "brush", brush: 40, undo: [], drawing: false, rectStart: null,
+  schema: null, entourageTouched: false,   // schema = normalised option schema (live or fallback)
 };
 const $ = (id) => document.getElementById(id);
 const els = {
@@ -36,6 +49,7 @@ const els = {
   fixToggle: $("fix-toggle"), fixPanel: $("fix-panel"), canvas: $("mask-canvas"),
   brushSize: $("brush-size"), brushVal: $("brush-size-val"), fixInstr: $("fix-instruction"),
   fix: $("btn-fix"), fixStatus: $("fix-status"), revMeta: $("rev-meta"), toast: $("toast"), status: $("server-status"),
+  reset: $("btn-reset"), random: $("btn-random"), promptStats: $("prompt-stats"),
 };
 
 /* ─────────────────────────── utilities */
@@ -68,9 +82,9 @@ function bust(url) { return url ? url + (url.includes("?") ? "&" : "?") + "t=" +
 
 function collectOptions() {
   const o = {};
-  for (const s of OPTIONS.selects) { const v = $("opt-" + s.key).value; if (v) o[s.key] = v; }
-  const ent = OPTIONS.toggles.filter((t) => $("opt-" + t.key).checked).map((t) => t.key);
-  if (ent.length) o.entourage = ent.join(",");                    // prompt_compose: entourage=people,cars
+  for (const s of S.schema.selects) { const v = $("opt-" + s.key).value.trim(); if (v) o[s.key] = v; }
+  if (S.entourageTouched)                                         // explicit on/off list, only once the user touched a toggle
+    o.entourage = S.schema.toggles.map((t) => `${t.key}:${$("opt-" + t.key).checked ? "on" : "off"}`).join(",");
   const kf = els.keepFixed.value.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   if (kf.length) o.keep_fixed = kf.join("; ");                    // prompt_compose: ';'-separated
   return o;
@@ -105,32 +119,113 @@ function selectPack(id) {
   document.querySelectorAll(".pack").forEach((el) => el.classList.toggle("active", el.dataset.id === id));
   const pk = S.packs.find((p) => p.id === id);
   if (pk) {           // pack slots pre-fill matching option selects
-    if (pk.mood && $("opt-mood")) $("opt-mood").value = OPTIONS.selects[0].values.includes(pk.mood) ? pk.mood : "";
+    if (pk.mood && $("opt-mood")) $("opt-mood").value = [...$("opt-mood").options].some((o) => o.value === pk.mood) ? pk.mood : "";
+    S.entourageTouched = false;
     for (const [k, v] of Object.entries(pk.slots || {})) {
-      if (k === "entourage") { const list = Array.isArray(v) ? v : String(v).split(","); OPTIONS.toggles.forEach((t) => ($("opt-" + t.key).checked = list.some((x) => String(x).trim() === t.key))); continue; }
+      if (k === "entourage") { const list = Array.isArray(v) ? v : String(v).split(","); S.schema.toggles.forEach((t) => ($("opt-" + t.key).checked = list.some((x) => String(x).trim().split(":")[0] === t.key))); continue; }
       const el = $("opt-" + k); if (!el) continue;
-      if (el.type === "checkbox") el.checked = v === true || v === "on"; else if ([...el.options].some((o) => o.value === v)) el.value = v;
+      if (el.type === "checkbox") el.checked = v === true || v === "on"; else if (el.tagName === "SELECT" && [...el.options].some((o) => o.value === v)) el.value = v;
     }
+    applyRequires();
   }
   updateRenderButton(); composePreview();
 }
-function buildOptions() {
-  const frag = document.createDocumentFragment();
-  for (const s of OPTIONS.selects) {
-    const l = document.createElement("label"); l.textContent = s.label;
-    const sel = document.createElement("select"); sel.id = "opt-" + s.key;
-    sel.innerHTML = `<option value="">(팩 기본값)</option>` + s.values.map((v) => `<option value="${v}">${v}</option>`).join("");
-    l.appendChild(sel); frag.appendChild(l);
+function normaliseSchema(live) {
+  if (!live || !live.values) {
+    return { selects: OPTIONS.selects.map((x) => ({ ...x, group: FALLBACK_GROUP[x.key] || "other" })), toggles: OPTIONS.toggles, aspect: OPTIONS.aspect, live: false, sentences: null, maxSlots: 7 };
   }
-  const gt = document.createElement("div"); gt.className = "group-title"; gt.textContent = "엔투라지"; frag.appendChild(gt);
+  const meta = live.options || {}, selects = [];
+  for (const [key, values] of Object.entries(live.values)) {
+    if (key === "entourage" || key === "aspect") continue;
+    selects.push({ key, label: KEY_LABELS[key] || key, values, group: (meta[key] || {}).merged_into || (key === "mood" ? "other" : key === "materials" ? "materials" : "other"),
+                   requires: (meta[key] || {}).requires || null });
+  }
+  for (const [key, type] of Object.entries(live.free || {})) {      // numeric free keys become text inputs
+    if (type === "int" || type === "float") selects.push({ key, label: KEY_LABELS[key] || key, values: null, group: (meta[key] || {}).merged_into || "other", free: type });
+  }
+  const order = ["other", ...(live.slots_order || []), "materials"];
+  selects.sort((a, b) => order.indexOf(a.group) - order.indexOf(b.group));
+  const toggles = ((meta.entourage || {}).values || live.values.entourage || OPTIONS.toggles.map((t) => t.key)).map((k) => ({ key: k, label: TOGGLE_LABELS[k] || k }));
+  // sentences (optional, key → value → English sentence) become <option title>; absent = no tooltips
+  return { selects, toggles, aspect: live.values.aspect || OPTIONS.aspect, live: true, sentences: live.sentences || null, maxSlots: live.max_slot_sentences || 7 };
+}
+function buildOptions(schema) {
+  S.schema = schema; els.options.innerHTML = "";
+  const frag = document.createDocumentFragment(), bodies = {};
+  const groupsIn = {}; for (const s of schema.selects) (groupsIn[SECTION_OF[s.group] || "look"] ||= new Set()).add(s.group);
+  const section = (id) => {
+    if (bodies[id]) return bodies[id];
+    const d = document.createElement("details"); d.className = "sec"; d.dataset.sec = id; d.open = true;
+    const sm = document.createElement("summary"); sm.textContent = SECTION_LABELS[id] || id; d.appendChild(sm);
+    const body = document.createElement("div"); body.className = "sec-body"; d.appendChild(body);
+    frag.appendChild(d); return (bodies[id] = body);
+  };
+  for (const id of SECTION_ORDER) if (groupsIn[id]) section(id);            // fixed order regardless of schema order
+  let group = null;
+  for (const s of schema.selects) {
+    const sec = SECTION_OF[s.group] || "look", body = section(sec);
+    if (s.group !== group && schema.live && groupsIn[sec].size > 1) { const gt = document.createElement("div"); gt.className = "group-title"; gt.textContent = GROUP_LABELS[s.group] || s.group; body.appendChild(gt); }
+    group = s.group;
+    const l = document.createElement("label"); l.textContent = s.label; l.dataset.key = s.key;
+    let ctl;
+    if (s.free) { ctl = document.createElement("input"); ctl.type = "text"; ctl.placeholder = "(팩 기본값)"; ctl.inputMode = "decimal"; }
+    else {
+      const sent = (schema.sentences || {})[s.key] || {};
+      ctl = document.createElement("select");
+      ctl.innerHTML = `<option value="">(팩 기본값)</option>` + s.values.map((v) => `<option value="${esc(v)}"${sent[v] ? ` title="${esc(sent[v])}"` : ""}>${esc(v)}</option>`).join("");
+    }
+    ctl.id = "opt-" + s.key; l.appendChild(ctl); body.appendChild(l);
+  }
+  const tgBody = section("people");
+  const gt = document.createElement("div"); gt.className = "group-title"; gt.textContent = "엔투라지 토글"; tgBody.appendChild(gt);
   const tg = document.createElement("div"); tg.className = "toggles";
-  for (const t of OPTIONS.toggles) {
-    tg.insertAdjacentHTML("beforeend", `<label><input type="checkbox" id="opt-${t.key}"> ${t.label}</label>`);
+  for (const t of schema.toggles) {
+    const l = document.createElement("label"), cb = document.createElement("input"); cb.type = "checkbox"; cb.id = "opt-" + t.key;
+    cb.addEventListener("change", () => { S.entourageTouched = true; applyRequires(); });
+    l.appendChild(cb); l.appendChild(document.createTextNode(" " + t.label)); tg.appendChild(l);
   }
-  frag.appendChild(tg); els.options.appendChild(frag);
-  els.aspect.innerHTML = OPTIONS.aspect.map((a) => `<option value="${a}">${a}</option>`).join("");
-  els.options.addEventListener("change", composePreview);
-  els.keepFixed.addEventListener("input", composePreview);
+  tgBody.appendChild(tg); els.options.appendChild(frag);
+  els.aspect.innerHTML = schema.aspect.map((a) => `<option value="${esc(a)}">${esc(a)}</option>`).join("");
+  if (!els.aspect.value) els.aspect.value = "auto";
+  applyRequires(); bindSections();
+}
+/* collapsible sections: restore open/closed from localStorage and persist on toggle */
+function bindSections() {
+  const saved = S.sections || (S.sections = (() => { try { return JSON.parse(localStorage.getItem(SEC_STORE) || "{}"); } catch (_) { return {}; } })());
+  document.querySelectorAll("details.sec[data-sec]").forEach((d) => {
+    if (d.dataset.sec in saved) d.open = !!saved[d.dataset.sec];
+    if (d.dataset.bound) return; d.dataset.bound = "1";
+    d.addEventListener("toggle", () => { saved[d.dataset.sec] = d.open; try { localStorage.setItem(SEC_STORE, JSON.stringify(saved)); } catch (_) {} });
+  });
+}
+/* presets */
+function resetOptions() {
+  for (const s of S.schema.selects) $("opt-" + s.key).value = "";
+  els.keepFixed.value = "";
+  if (S.pack) selectPack(S.pack); else { S.entourageTouched = false; applyRequires(); }   // selectPack re-applies pack defaults + previews
+  toast("팩 기본값으로 초기화");
+}
+function randomizeOptions() {
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  for (const s of S.schema.selects) {
+    if (s.free || !s.values || s.group === "shot" || s.key === "camera") continue;     // camera axes, aspect, keep_fixed untouched
+    $("opt-" + s.key).value = pick(s.values);
+    const m = s.requires && /^entourage\.(\w+)=on$/.exec(s.requires);
+    if (m && $("opt-" + m[1]) && !$("opt-" + m[1]).checked) { $("opt-" + m[1]).checked = true; S.entourageTouched = true; }
+  }
+  applyRequires(); composePreview();
+}
+/* requires: "entourage.people=on" → disable the control while that toggle is off (composer ignores it anyway) */
+function applyRequires() {
+  for (const s of S.schema.selects) {
+    if (!s.requires) continue;
+    const m = /^entourage\.(\w+)=on$/.exec(s.requires); if (!m) continue;
+    const on = $("opt-" + m[1])?.checked; const ctl = $("opt-" + s.key); ctl.disabled = !on; ctl.closest("label").style.opacity = on ? "" : ".45";
+  }
+}
+async function loadOptionsSchema() {
+  try { return normaliseSchema(await api("/api/options")); }
+  catch (e) { toast("옵션 스키마를 서버에서 못 받아 내장 어휘로 동작합니다 (" + e.message + ")", true); return normaliseSchema(null); }
 }
 const composePreview = debounce(async () => {
   if (!S.pack) return;
@@ -138,11 +233,22 @@ const composePreview = debounce(async () => {
   try {
     const r = await api("/api/compose", { pack: S.pack, options: collectOptions() });
     els.prompt.textContent = r.prompt || "(빈 프롬프트)";
+    els.promptStats.textContent = promptStats(r);
   } catch (e) {
     els.prompt.textContent = (e.status === 503 ? "프롬프트 스크립트가 아직 없습니다.\n" : "프롬프트 생성 실패\n") + errText(e);
+    els.promptStats.textContent = "";
   }
   els.prompt.classList.remove("stale");
 }, 350);
+/* "잠금 1 + 슬롯 N/7": from --json parts when /api/compose returns them (lock/slots arrays), else a client-side
+   sentence count — split on ". ", drop the lock/negative/aspect sentences, treat the rest as slot sentences (≈). */
+function promptStats(r) {
+  const max = S.schema?.maxSlots || 7;
+  if (Array.isArray(r.slots)) return `잠금 1 + 슬롯 ${r.slots.length}/${max}`;
+  const sents = String(r.prompt || "").split(/\.\s+(?=[A-Z])/).map((x) => x.trim()).filter(Boolean);
+  const slots = sents.filter((x) => !/^(Use the attached|Keep the |Do not add|Avoid:|Aspect ratio)/.test(x)).length;
+  return `잠금 1 + 슬롯 ≈${slots}/${max}`;
+}
 
 /* ─────────────────────────── capture upload */
 function bindDropzone() {
@@ -366,7 +472,12 @@ async function savePack() {
 }
 
 /* ─────────────────────────── boot */
-buildOptions(); bindDropzone(); bindCompare(); bindCanvas();
+bindDropzone(); bindCompare(); bindCanvas();
 els.render.addEventListener("click", doRender);
 els.savePack.addEventListener("click", savePack);
-loadPacks().then(loadRevisions);
+els.options.addEventListener("change", composePreview); els.options.addEventListener("input", debounce(composePreview, 300));
+els.keepFixed.addEventListener("input", composePreview);
+els.reset.addEventListener("click", resetOptions); els.random.addEventListener("click", randomizeOptions);
+els.options.addEventListener("change", (e) => { if (e.target.tagName === "SELECT") e.target.title = e.target.selectedOptions[0]?.title || ""; });  // hover help on the closed select
+bindSections();
+loadOptionsSchema().then((schema) => { buildOptions(schema); return loadPacks(); }).then(loadRevisions);

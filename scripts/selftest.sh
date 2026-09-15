@@ -55,6 +55,41 @@ for p in "$PACK" "$ROOT"/assets/stylepacks/*/pack.yaml; do
   echo "  $id: ${#out} chars (parsers agree)"
 done
 
+step "3b/7 merged option axes: maximal set on every pack stays within the slot cap; --list-options is valid JSON"
+python3 - "$S/prompt_compose.py" "$FIX/options_maximal.json" "$PACK" "$ROOT"/assets/stylepacks/*/pack.yaml <<'PY'
+import json, subprocess, sys
+from pathlib import Path
+script, fixture, *packs = sys.argv[1:]
+sys.path.insert(0, str(Path(script).parent)); import prompt_compose as pc
+fx = json.loads(Path(fixture).read_text())
+args = [f"--option={k}={v}" for k, v in fx["options"].items()]
+for p in packs:
+    if not Path(p).is_file(): continue
+    parts = json.loads(subprocess.check_output([sys.executable, script, "--pack", p, "--json", *args], text=True))
+    slots = parts["slots"]
+    assert len(slots) <= 7, (p, len(slots), slots)
+    pack = pc.load_pack(p)
+    people_on = not any(pc.PEOPLE_OFF_RE.search(str(i)) for i in pc._as_list((pack.get("slots") or {}).get("entourage")))
+    expect = dict(fx["expect_in_slots"])
+    if people_on:
+        expect["entourage"] = expect["entourage"] + fx["expect_in_slots_if_people_on"]["entourage"]
+    for name, needles in expect.items():
+        hits = [s for s in slots if all(n in s for n in needles)]
+        assert hits, f"{Path(p).parent.name}: merged axis {name!r} missing {needles} in {slots}"
+    joined = " ".join(slots)
+    assert "no cars" not in joined and "no additional cars" not in joined, slots     # car_density=few overrode the cars item
+    assert people_on == ("fifteen or more" in joined), (people_on, slots)            # people axes apply only when people are on
+    assert "Keep the canopies white." in parts["keeps"] and parts["tail"][-1] == "Aspect ratio 16:9.", parts
+    print(f"  {Path(p).parent.name}: {len(slots)} slot sentences, all merged axes present")
+lo = json.loads(subprocess.check_output([sys.executable, script, "--list-options"], text=True))
+assert len(lo["options"]) >= 20 and isinstance(lo["values"], dict) and isinstance(lo["free"], dict), lo.keys()
+for k in ("people_density", "sky", "context", "material_wear", "tone", "interior_lights", "vegetation_age", "car_type"):
+    assert k in lo["values"], k
+for k in ("lens_mm", "camera_height_m", "keep_fixed", "references"):
+    assert k in lo["free"], k
+print(f"  --list-options: {len(lo['options'])} keys ({len(lo['values'])} enum, {len(lo['free'])} free)")
+PY
+
 step "4/7 render.py --dry-run (gpt + grok) and fix --dry-run"
 python3 "$S/render.py" --input "$FIX/sample_capture.png" --project "$PROJ" --shot S01 --pack "$PACK" --option lighting=golden_hour --dry-run
 python3 "$S/render.py" --input "$FIX/sample_capture.png" --project "$PROJ" --shot S01 --pack "$PACK" --backend grok --aspect 16:9 --dry-run

@@ -26,27 +26,39 @@
 | `samples[]` | `samples/sample-01.png` — 이 팩으로 실제 나온 결과 | 팩 카드 미리보기 |
 | `changelog[]` | `{date, note}` 누적 | 합성 팩은 첫 줄에 "synthesized" 명시 |
 
-## 2. 프롬프트 합성 순서 (10부)
+## 2. 프롬프트 합성 순서 (11부, 슬롯 7문장)
 
 `scripts/prompt_compose.py`가 아래 순서로 한 문단을 만든다. 순서는 트라이얼에서 검증된 것이므로 바꾸지 않는다.
+2026-09-15 옵션 축 확장 후, 관련 축은 **한 문장으로 합류**해 슬롯 캡을 지킨다 (`;`로 이어 붙임).
 
 ```
  1. source lock      prompts/geometry_lock.txt 전문 + 팩 geometry_lock (추가 잠금)
- 2. mood / shot      "Produce a {mood words} architectural render of this exact scene, {shot_type}." + Camera
+ 2. shot             "Produce a {mood words} of this exact scene: {shot_type}; camera {lens}, {height}, {perspective}."
+                     ← camera가 shot 문장에 합류. lens_mm / camera_height_m / tilt 옵션은 프리셋 필드만 덮어쓴다
  3. materials        "Materials: a, b, c."
- 4. lighting         "Lighting: …"
- 5. season           "Season and weather: …"
- 6. entourage        "Entourage: …"  ← 팩·옵션이 허용한 항목만. 허용 목록 밖은 버린다
- 7. post             "Post-processing: …"
- 8. keep_fixed       "Keep the canopies white." (항목마다 1문장)
- 9. Avoid            "Avoid: {negative}."
-10. aspect           "Aspect ratio 4:3."
+ 4. lighting         "Lighting: {lighting}; {sky}; {interior_lights}."
+                     ← sky가 있으면 lighting·season 텍스트의 하늘/구름 쉼표 절을 제거하고 sky 어구가 대신한다 (하늘 우선권)
+                     ← interior_lights가 있으면 lighting의 "interior lights …" 절을 제거하고 대신한다
+ 5. season           "Season and weather: {season_weather}; {vegetation_age}."
+ 6. entourage        "Entourage: {people}; {cars}; {vegetation}; {furniture}."
+                     ← people_density + people_activity → people 항목 교체 (people on일 때만)
+                     ← car_density + car_type → cars 항목 교체 (car_density는 "no cars"도 덮어씀)
+                     ← 팩·옵션이 허용한 항목만. 허용 목록 밖은 버린다
+ 7. context          "Context: {context}; {material_wear}."  ← 둘 중 하나라도 있을 때만 생성. as_drawn 명시 → "Do not add surroundings beyond what is drawn."
+ 8. grading          "Post-processing: {tone}; {post}."
+ 9. keep_fixed       "Keep the canopies white." (항목마다 1문장) + references가 있으면 "Match the attached reference images for materials and mood."
+10. Avoid            "Avoid: {negative}."
+11. aspect           "Aspect ratio 4:3."
 ```
 
-- **슬롯 캡**: 2~7번을 합쳐 **7문장 이하**. 넘치면 뒤에서부터 잘린다 → 재질 목록을 늘리지 말고 항목을 고른다.
-- 1·8·9·10은 캡 밖이다 (잠금과 금지는 절대 잘리지 않는다).
+- **슬롯 캡**: 2~8번을 합쳐 **7문장 이하** (전부 채우면 정확히 7). 넘치면 뒤에서부터 잘린다 → 재질 목록을 늘리지 말고 항목을 고른다.
+- 1·9·10·11은 캡 밖이다 (잠금·고정·레퍼런스·금지는 절대 잘리지 않는다).
+- **우선권**: 명시 옵션 > 팩 슬롯 > 프리셋 기본. 하늘은 `sky > lighting의 하늘 절 > season_weather의 하늘 절`.
+  `context`의 기본값 `as_drawn`은 암묵이다 — 옵션도 팩 슬롯도 없으면 Context 문장을 만들지 않는다 (잠금 문장이 이미 막는다).
 - 실측 근거: 트라이얼 7장 모두 이 골격(lock → 재질 → 조명 → 엔투라지 → 렌즈 → 비율)으로 기하 보존이 우수했다
   (`20-knowledge/trials/` 참조). gpt-image 경로는 마스크가 없으므로 "only change X" 지시를 keep_fixed로 넣어 근사한다.
+- 문장 단위 확인: `python3 scripts/prompt_compose.py --pack <id> [--option …] --json` 이 `lock/slots/keeps/tail`을 나눠 보여준다.
+  어휘 정본 JSON은 `--list-options`.
 
 ## 3. 6가지 스타일 차원
 

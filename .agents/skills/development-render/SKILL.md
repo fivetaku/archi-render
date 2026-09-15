@@ -34,8 +34,31 @@ $development-render <project> <shot|all> --pack <id> [--option k=v ...] [--backe
 python3 scripts/prompt_compose.py --pack <id> [--option k=v ...] --print
 ```
 
-- 결과를 보여주고, 사용자가 확정한 색·요소가 있으면 `--option`으로 넣는다(예 `--option fixed_colors="columns white"`). 기하 잠금 꼬리(geometry_lock)가 빠져 있으면 실패로 보고 팩을 점검한다.
+- 결과를 보여주고, 사용자가 확정한 색·요소가 있으면 `--option keep_fixed="the columns white; the sign text Cafe"`로 넣는다. 기하 잠금 꼬리(geometry_lock)가 빠져 있으면 실패로 보고 팩을 점검한다.
 - 프롬프트를 손으로 고쳐 쓰지 않는다. 바꿀 것은 옵션 또는 팩이다 (Pack Before Prompt).
+- 문장 단위로 확인하려면 `--json`(lock/slots/keeps/tail). 슬롯은 7문장 캡 — 옵션을 아무리 많이 줘도 관련 축이 한 문장으로 합류하므로 넘치지 않는다.
+
+**`--option` 어휘** (정본 `20-knowledge/stylepacks/OPTIONS.md`, 기계용 `python3 scripts/prompt_compose.py --list-options`). 우선권: 명시 옵션 > 팩 슬롯 > 프리셋 기본.
+
+| 합류 문장 | 키 | 값 |
+|---|---|---|
+| shot | `mood` | photoreal · cinematic · clay · watercolor · diagram |
+| | `camera` | eye_level · elevated · drone · interior |
+| | `lens_mm` / `camera_height_m` / `tilt` | 정수 / 실수 / level · slight_up · slight_down (프리셋 필드만 덮어씀) |
+| materials | `materials` | white_stucco_oak · board_formed_concrete · brick_dark_metal · timber_glass · clay_massing · 자유 리스트 |
+| lighting | `lighting` | overcast · midday · golden_hour · dusk · night · blue_hour · dawn · morning_side · afternoon_backlit · night_signs_only · night_full |
+| | `sky` | clear · scattered_cumulus · overcast · dramatic · haze (lighting·season의 하늘 절을 대체) |
+| | `interior_lights` | off · partial · all_on |
+| season | `season_weather` | spring · summer · autumn · winter · rain · snow · early_spring_blossom · monsoon_rain · late_autumn · heavy_snow · haze · fog |
+| | `vegetation_age` | young · mature · lush |
+| entourage | `entourage` | `people:on,cars:off,vegetation:on,furniture:on` |
+| | `people_density` / `people_activity` | none · sparse · moderate · busy / walking · standing_talking · seated · mixed (people on일 때만) |
+| | `car_density` / `car_type` | none · few · full / passenger · mixed_commercial · bicycles_only |
+| context | `context` | as_drawn(기본, 암묵) · urban_dense · suburban · rural · waterfront · forest |
+| | `material_wear` | new · lived_in · weathered |
+| grading | `tone` | editorial_magazine · real_estate_ad · competition_panel · documentary |
+| | `post` | neutral · teal_orange · warm_film · bw |
+| 캡 밖 | `keep_fixed` / `references` / `aspect` | `;` 구분 문장 / 이미지 경로(gpt 경로에 추가 `--ref`) / 4:3 · 16:9 · 3:2 · 1:1 · 2:1 · auto |
 
 ### Step 3: 렌더 실행
 

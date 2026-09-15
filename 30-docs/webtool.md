@@ -26,6 +26,7 @@ python3 webtool/server.py
 
 1. **캡처**: 드래그앤드롭 또는 클릭. PNG/JPG/WebP. 프로젝트·샷 이름은 영문·숫자·`-`·`_`만. 같은 샷에 다시 올리면 덮어쓴다.
 2. **팩 선택**: 카드를 누르면 팩의 슬롯 값이 옵션 셀렉트에 미리 채워진다(어휘에 있는 값만). 빈 셀렉트 = 팩 기본값 그대로.
+   옵션 패널 자체는 서버가 `prompt_compose.py --list-options`로 받은 어휘로 만들어지므로, 스크립트에 값이 추가되면 재시작 없이 새로고침만으로 반영된다. 인물 밀도·동작 같은 하위 옵션은 "사람" 토글을 켜야 활성화된다.
 3. **옵션 → 프롬프트**: 값이 바뀌면 350ms 뒤 `/api/compose`를 호출해 실제 `prompt_compose.py` 출력이 미리보기에 뜬다. 렌더에 들어가는 프롬프트와 동일하다.
 4. **렌더**: 기본 백엔드 gpt. 완료까지 버튼이 잠기고 경과 초가 표시된다(최대 600초). 끝나면 새 리비전 탭이 선택된다.
 5. **비교**: 슬라이더(입력 위에 렌더를 겹쳐 드래그) 또는 나란히.
@@ -60,5 +61,7 @@ python3 webtool/server.py
 - **화면이 깨짐/옛 버전**: 정적 파일은 `no-cache`라 새로고침으로 충분. 서버 코드 변경은 재시작 필요.
 
 ## 검증 기록
+
+2026-09-15 추가: `/api/options` 연동 — 실 루트에서 19개 enum 키가 7슬롯 그룹으로 렌더되고, `people_density`가 사람 토글에 연동되며, 엔투라지가 `people:on,cars:off,…` 형식으로 전송되는 것을 Playwright로 확인(`screenshot-04-live-schema.png`). `--list-options`가 없는 스텁 루트에서는 내장 어휘 폴백 + 토스트 확인.
 
 2026-09-14 오프라인 검증: 스텁 루트에서 전체 엔드포인트 curl 통과, 빈 루트에서 `/api/packs → []`·`/api/compose → 503` 확인, 실 루트에서 실제 `prompt_compose.py`와 옵션 인코딩(entourage 콤마 목록, keep_fixed `;`) 왕복 확인. Playwright(Chromium)로 페이지 렌더·브러시·단축키·Fix 왕복·저장 마스크 형식(64×48, 8-bit, colortype 0)까지 실측. 스크린샷: `40-reports/webtool/screenshot-0{1,2,3}-*.png`.

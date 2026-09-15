@@ -100,11 +100,23 @@ button.tool.active { border-color: var(--accent); color: var(--accent); }
 .pack .mood { padding: 0 8px 7px; font-size: 10.5px; color: var(--muted); }
 
 /* options */
-.options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
+.presets { display: flex; gap: 6px; margin-bottom: 8px; }
+.presets button { padding: 4px 10px; font-size: 12px; }
+.options { display: flex; flex-direction: column; gap: 6px; }
 .options label { width: 100%; }
 .options .toggles { grid-column: 1 / -1; display: flex; gap: 10px; flex-wrap: wrap; padding-top: 2px; }
 .options .toggles label { flex-direction: row; align-items: center; gap: 5px; color: var(--text); font-size: 12px; }
 .options .group-title { grid-column: 1 / -1; font-size: 11px; color: var(--muted); margin-top: 2px; }
+/* collapsible sections (open/closed state persisted in localStorage) */
+details.sec { border: 1px solid var(--line); border-radius: 4px; background: var(--bg-2); margin-top: 6px; }
+details.sec > summary { cursor: pointer; list-style: none; padding: 6px 10px; font-size: 11.5px; font-weight: 600; color: var(--muted); user-select: none; display: flex; align-items: center; gap: 6px; }
+details.sec > summary::-webkit-details-marker { display: none; }
+details.sec > summary::before { content: ""; width: 0; height: 0; border-left: 4px solid var(--muted); border-top: 3px solid transparent; border-bottom: 3px solid transparent; transition: transform .12s; }
+details.sec[open] > summary::before { transform: rotate(90deg); }
+details.sec > summary .count { margin-left: auto; font-weight: 400; font-size: 10.5px; color: var(--accent); }
+details.sec .sec-body { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; padding: 4px 10px 10px; }
+details.sec .sec-body .block, details.sec .sec-body .row { grid-column: 1 / -1; margin-top: 0; }
+#prompt-stats { text-transform: none; letter-spacing: 0; font-weight: 400; margin-left: 6px; }
 
 .prompt { background: var(--bg-2); border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; margin: 0; max-height: 180px; overflow: auto; font-size: 11.5px; white-space: pre-wrap; color: #c8ccd3; }
 .prompt.stale { opacity: .55; }

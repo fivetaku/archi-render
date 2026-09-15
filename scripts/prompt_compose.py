@@ -7,19 +7,24 @@ Loading: ``import yaml`` when available; otherwise a minimal built-in YAML subse
 ``pack.json`` next to (or instead of) ``pack.yaml`` is also accepted and preferred when
 PyYAML is missing and the mini parser cannot read the file.
 
-Prompt structure (proven in trial_20260914):
-  1. geometry lock sentence   2. mood + shot type + camera   3. materials
-  4. lighting                 5. season/weather               6. entourage
-  7. post/grading             8. keep_fixed lines             9. "Avoid: ..."
-  10. aspect ratio hint
-Slots 2-7 are capped at 7 sentences; lock/keep_fixed/avoid/aspect are extra.
+Prompt structure (proven in trial_20260914, merged axes 2026-09-15):
+  1. geometry lock sentence(s)
+  2. mood + shot type + camera (one sentence; lens_mm/camera_height_m/tilt override preset fields)
+  3. materials
+  4. lighting  (+ sky + interior_lights merged in; sky clause replaces sky/cloud clauses of the lighting text)
+  5. season    (+ vegetation_age merged in)
+  6. entourage (+ people_density/people_activity/car_density/car_type merged into the people/cars items)
+  7. context   (context + material_wear; only emitted when one of them is set)
+  8. grading   (tone + post)
+  9. keep_fixed lines, then the references note        10. "Avoid: ..."        11. aspect ratio hint
+Slots 2-8 are capped at MAX_SLOT_SENTENCES (7); lock/keep_fixed/references/avoid/aspect are extra.
 
-Option keys override pack slots: mood, shot_type, lighting, season_weather, camera,
-materials (list or comma string), entourage (list or comma string), post,
-keep_fixed (list or ';'-separated string), aspect, source_note.
+Precedence per key: explicit --option > pack slot (slots.<key> or top-level <key>) > preset default.
+Vocabulary mirrors 20-knowledge/stylepacks/OPTIONS.md; ``--list-options`` prints it as JSON for the webtool.
 Entourage whitelist: if the pack defines ``entourage_allowed``, items outside it are dropped.
 
-CLI: python3 scripts/prompt_compose.py --pack <id-or-path> [--option k=v ...] [--print]
+CLI: python3 scripts/prompt_compose.py --pack <id-or-path> [--option k=v ...] [--print|--json]
+     python3 scripts/prompt_compose.py --list-options
 """
 from __future__ import annotations
 
@@ -40,6 +45,12 @@ LOCK = (
     "buildings, floors or openings."
 )
 LIST_KEYS = {"materials", "entourage", "keep_fixed", "references", "samples"}
+SKY_CLAUSE_RE = re.compile(r"\b(sky|skies|clouds?|cumulus|cumulonimbus|cloudless)\b", re.I)
+INTERIOR_CLAUSE_RE = re.compile(r"\binterior\b.*\blights?\b|\blights?\b.*\binterior\b|\bglazing\b.*\b(lit|dark)\b", re.I)
+PEOPLE_ITEM_RE = re.compile(r"\b(people|person|pedestrians?|figures?|crowd)\b", re.I)
+PEOPLE_OFF_RE = re.compile(r"\bno (added |additional |extra )?(people|pedestrians|figures)\b", re.I)
+CARS_ITEM_RE = re.compile(r"\b(cars?|vehicles?|bicycles?)\b", re.I)
+CARS_OFF_RE = re.compile(r"\bno (added |additional |extra )?(cars|vehicles)\b", re.I)
 
 # ---- preset vocabulary: mirror of 20-knowledge/stylepacks/OPTIONS.md (source of truth; keep in sync).
 # Unknown values pass through as free text, so packs and ad-hoc options keep working.
@@ -70,6 +81,11 @@ LIGHTING = {
     "dusk": "sun just below the horizon camera-left, sky graded deep blue #1B2A49 at zenith to burnt orange #E8742A at horizon with lit cloud undersides, interior lights on at 2700K spilling onto the ground, long soft shadows",
     "night": "sky #0B1526 with no stars or moon, interior and sign lights at 3000K as the only warm sources, one cool 4000K street lamp per 15 m, soft shadowless ground",
     "blue_hour": "15 minutes after sunset, even cobalt sky #274B8F, no direct light, interior lights on at 2700K balanced to the sky, facades in soft cool shadow",
+    "dawn": "first light 10 minutes after sunrise, sun at 3 degrees elevation camera-right, 2800K, pale pink-grey sky, very long soft shadows stretching left, interior lights on at 2700K",
+    "morning_side": "morning sun from camera-right at 30 degrees elevation, 4500K, crisp medium-length shadows raking across the facade to reveal texture, clear sky, interior lights off",
+    "afternoon_backlit": "afternoon sun behind the building at 35 degrees elevation, 5000K, facade in open shade with a bright rim of light on roof edges and parapets, shadows stretching toward the camera, no lens flare",
+    "night_signs_only": "night, sky #0B1526 with no stars or moon, all interior lights off with glazing reading dark, only sign lights at 3000K and low pathway bollards at 3000K, one cool 4000K street lamp per 15 m, soft shadowless ground",
+    "night_full": "night, sky #0B1526 with no stars or moon, every interior light on at 2700K glowing through all glazing, sign lights at 3000K, one cool 4000K street lamp per 15 m, soft shadowless ground",
 }
 SEASON = {
     "spring": "late spring, fresh mid-green foliage, dry ground, thin high cloud",
@@ -78,7 +94,77 @@ SEASON = {
     "winter": "midwinter, bare deciduous branches, pale low-contrast sky, dry cold ground, no snow",
     "rain": "after rain, puddled and wet-look ground with mirror reflections of lights and sky, dark saturated paving, dramatic broken clouds, no falling rain visible",
     "snow": "midwinter, 3 cm fresh snow on horizontal surfaces only, wet dark asphalt where ploughed, bare branches with snow, light snowfall visible only near the camera",
+    "early_spring_blossom": "early spring, cherry and magnolia trees in full pale-pink blossom with a few petals on the paving, lawns just turning green, dry ground, thin high cloud",
+    "monsoon_rain": "monsoon downpour, heavy rain falling in visible grey streaks, water sheeting down the glass, gutters overflowing, puddled dark paving with rippled reflections, low uniform grey sky",
+    "late_autumn": "late autumn, mostly bare deciduous branches with a few dry brown leaves left, thick leaf litter at kerbs and lawn edges, low pale sun, dry ground",
+    "heavy_snow": "midwinter, heavy snowfall, 15 cm of fresh snow on every horizontal surface and roof, flakes falling across the whole frame, snow-laden branches, flat white overcast sky",
+    "haze": "fine-dust haze, distant buildings low-contrast and desaturated fading toward the horizon, sky uniform pale grey-beige, soft diffuse light, near facades at full contrast",
+    "fog": "dense morning fog, visibility about 80 m, background dissolving to white, soft shadowless light, wet dark paving, drops on railings",
 }
+PEOPLE_DENSITY = {  # applies only when the people toggle is on
+    "none": "no people",
+    "sparse": "one or two people",
+    "moderate": "five to eight people spread across the drawn walkways and entrance",
+    "busy": "a busy crowd of fifteen or more people in groups of three to five",
+}
+PEOPLE_ACTIVITY = {
+    "walking": "walking along the drawn paths, mid-stride",
+    "standing_talking": "standing in pairs talking, turned toward each other",
+    "seated": "seated on the drawn benches, steps and terraces",
+    "mixed": "in a mix of walking, standing in conversation and sitting",
+}
+CAR_DENSITY = {
+    "none": "no cars",
+    "few": "one to three cars parked in the drawn bays with the remaining bays empty",
+    "full": "a car in every drawn parking bay",
+}
+CAR_TYPE = {
+    "passenger": "passenger cars only, sedans and compact SUVs in white, grey and black",
+    "mixed_commercial": "a mix of passenger cars and one delivery van or small box truck",
+    "bicycles_only": "bicycles only in the drawn racks, no motor vehicles",
+}
+VEGETATION_AGE = {
+    "young": "newly planted 2 m saplings with timber stakes and ties, thin open canopies, bare mulch beds",
+    "mature": "mature trees with 8 to 10 m canopies casting broad soft shade, established clipped shrubs",
+    "lush": "lush planting with a dense understory of ferns and grasses, climbers on walls and pergolas, mature 8 to 10 m canopies",
+}
+SKY = {
+    "clear": "clear cloudless sky",
+    "scattered_cumulus": "sky with scattered soft white cumulus covering about a third of it",
+    "overcast": "uniformly overcast grey-white sky with no visible sun disc",
+    "dramatic": "towering cumulonimbus with dark grey bases and sunlit white tops, sun breaking through gaps in distinct shafts",
+    "haze": "hazy pale grey-beige sky with no cloud detail and a low-contrast horizon",
+}
+CONTEXT = {
+    "as_drawn": "Do not add surroundings beyond what is drawn",
+    "urban_dense": "dense urban surroundings, 5 to 8 storey neighbouring buildings tight to the site boundary, street with kerbs, lamp posts and parked cars beyond the site",
+    "suburban": "suburban surroundings, two-storey houses with front gardens set back across the street, hedges and evenly spaced street trees",
+    "rural": "rural surroundings, open fields and a low tree line at the horizon, gravel access track, no neighbouring buildings",
+    "waterfront": "waterfront setting, calm water along one edge of the site with a timber boardwalk and mirror reflections of the building",
+    "forest": "forest surroundings, dense pine and deciduous trees 15 to 20 m tall closing in at the site edge, dappled light on the ground",
+}
+MATERIAL_WEAR = {
+    "new": "all materials brand new, clean and unweathered, crisp edges and unmarked paving",
+    "lived_in": "materials lightly lived-in, faint staining under window sills, gentle patina on metal, clean glass",
+    "weathered": "weathered materials, dark streaking below sills and copings, moss and algae at grade, faded chalky paint and rust bloom on steel fixings",
+}
+INTERIOR_LIGHTS = {
+    "off": "all interior lights off, glazing reflecting the sky only",
+    "partial": "interior lights on at 2700K in about half the rooms, the rest dark",
+    "all_on": "every interior light on at 2700K glowing through all glazing",
+}
+TONE = {
+    "editorial_magazine": "editorial architecture-magazine photograph, single considered frame, restrained composition, true-to-life color",
+    "real_estate_ad": "real-estate listing photograph, brightly and evenly exposed, open shadows, clean blue sky, entrance clearly readable",
+    "competition_panel": "competition-panel render, slightly desaturated palette, clean edges, uncluttered foreground, emphasis on the building silhouette",
+    "documentary": "documentary photograph, available light only, no staging, natural imperfections and everyday clutter kept",
+}
+TILT = {
+    "level": "camera level, straight vertical uprights, no keystoning",
+    "slight_up": "camera pitched up about 5 degrees, verticals converging slightly toward the top",
+    "slight_down": "camera pitched down about 5 degrees, horizon in the upper third of the frame",
+}
+REFERENCES_NOTE = "Match the attached reference images for materials and mood."
 CAMERA = {  # value → (camera object, shot_type replacement)
     "eye_level": ({"lens_mm": 35, "height": "eye level, 1.6 m", "perspective": "straight vertical uprights, no keystoning, horizon at one-third height"}, "eye-level exterior view of THIS building"),
     "elevated": ({"lens_mm": 24, "height": "elevated, 3 m", "perspective": "straight vertical uprights, wide field of view"}, "slightly elevated exterior view of THIS building"),
@@ -359,12 +445,100 @@ def pack_aspect(pack: dict):
     return ((pack.get("backends") or {}).get("gpt-image") or {}).get("aspect_hint")
 
 
-def compose(pack: dict, options: dict, source_note: str = "SketchUp") -> str:
-    """Return the final prompt string for one render.
+def _drop_clauses(text: str, pattern: re.Pattern) -> str:
+    """Remove comma-separated clauses of `text` that match `pattern` (used when sky/interior override)."""
+    kept = [c for c in re.split(r",\s*", str(text)) if not pattern.search(c)]
+    return ", ".join(c.strip() for c in kept if c.strip()).rstrip(" ,")
+
+
+def _lookup(table: dict, value):
+    """Preset name → fixed sentence; unknown values pass through as free text; empty → None."""
+    if value in (None, "", []):
+        return None
+    v = str(value).strip()
+    return table.get(v, v)
+
+
+def _people_phrase(density, activity) -> str | None:
+    d, a = _lookup(PEOPLE_DENSITY, density), _lookup(PEOPLE_ACTIVITY, activity)
+    if d == PEOPLE_DENSITY["none"]:
+        return d
+    if d and a:
+        return f"{d} {a}, realistic everyday clothing"
+    if d:
+        return f"{d} in the drawn positions, realistic everyday clothing"
+    if a:
+        return f"people kept in the drawn positions {a}, realistic everyday clothing"
+    return None
+
+
+def _cars_phrase(density, ctype) -> str | None:
+    d, t = _lookup(CAR_DENSITY, density), _lookup(CAR_TYPE, ctype)
+    if d == CAR_DENSITY["none"]:
+        return d
+    if t == CAR_TYPE["bicycles_only"]:
+        return t
+    if d and t:
+        return f"{d}, {t}"
+    if d:
+        return d
+    if t:
+        return f"real cars only in the drawn parking bays or lanes, {t}"
+    return None
+
+
+def _merge_entourage(items: list[str], people_phrase, cars_phrase, cars_requested: bool) -> list[str]:
+    """Replace the people / cars items of an entourage list with the merged phrases.
+
+    people options apply only when people are on (no "no people" item); if no people item exists the phrase
+    is appended. cars: car_density is an explicit override of a "no cars" item; car_type alone is ignored
+    when cars are off.
+    """
+    out = list(items)
+    people_on = not any(PEOPLE_OFF_RE.search(i) for i in out)
+    if people_phrase and people_on:
+        idx = [i for i, it in enumerate(out) if PEOPLE_ITEM_RE.search(it)]
+        if idx:
+            out[idx[0]] = people_phrase
+            for i in reversed(idx[1:]):
+                del out[i]
+        else:
+            out.append(people_phrase)
+    cars_on = not any(CARS_OFF_RE.search(i) for i in out)
+    if cars_phrase and (cars_on or cars_requested):
+        idx = [i for i, it in enumerate(out) if CARS_ITEM_RE.search(it)]
+        if idx:
+            out[idx[0]] = cars_phrase
+            for i in reversed(idx[1:]):
+                del out[i]
+        else:
+            out.append(cars_phrase)
+    return out
+
+
+def _apply_camera_overrides(camera_obj, options: dict):
+    """lens_mm / camera_height_m / tilt override the matching camera preset fields."""
+    lens, height, tilt = options.get("lens_mm"), options.get("camera_height_m"), options.get("tilt")
+    if not any(v not in (None, "") for v in (lens, height, tilt)):
+        return camera_obj
+    cam = dict(camera_obj) if isinstance(camera_obj, dict) else {"perspective": str(camera_obj or "").strip() or None}
+    if lens not in (None, ""):
+        cam["lens_mm"] = int(float(lens))
+    if height not in (None, ""):
+        h = float(height)
+        cam["height"] = f"{h:g} m"
+    if tilt not in (None, ""):
+        cam["perspective"] = _lookup(TILT, tilt)
+    return cam
+
+
+def compose_parts(pack: dict, options: dict, source_note: str = "SketchUp") -> dict:
+    """Compose and return the prompt in parts: {lock:[], slots:[], keeps:[], tail:[], prompt:str}.
 
     Option values may be OPTIONS.md preset names (lighting=golden_hour, materials=timber_glass,
-    camera=drone, entourage=people:on,cars:off, post=bw ...) or free text. Presets expand to their
-    fixed sentences; free text is used verbatim. aspect=auto suppresses the aspect hint.
+    camera=drone, entourage=people:on,cars:off, post=bw, sky=dramatic ...) or free text. Presets expand
+    to their fixed sentences; free text is used verbatim. aspect=auto suppresses the aspect hint.
+    Precedence per key: explicit option > pack slot > preset default.
     """
     options = dict(options or {})
     slots = dict(pack.get("slots") or {})
@@ -372,7 +546,7 @@ def compose(pack: dict, options: dict, source_note: str = "SketchUp") -> str:
 
     def pick(key, default=None):
         v = options.get(key)
-        if v in (None, ""):
+        if v in (None, "", []):
             v = slots.get(key, pack.get(key, default))
         return v
 
@@ -380,14 +554,16 @@ def compose(pack: dict, options: dict, source_note: str = "SketchUp") -> str:
     mood_words = MOOD_WORDS.get(mood, mood)
     comp_materials, comp_post = MOOD_COMPANION.get(mood, (None, None)) if options.get("mood") else (None, None)
 
+    # 2. shot + camera (one sentence)
     cam_opt = options.get("camera")
     if isinstance(cam_opt, str) and cam_opt in CAMERA:
         camera_obj, shot = CAMERA[cam_opt]
         shot = options.get("shot_type") or shot
     else:
         camera_obj, shot = pick("camera"), str(pick("shot_type", "exterior view") or "").strip()
-    camera = _camera_text(camera_obj)
+    camera = _camera_text(_apply_camera_overrides(camera_obj, {k: pick(k) for k in ("lens_mm", "camera_height_m", "tilt")}))
 
+    # 3. materials
     mats = options.get("materials")
     if mats in (None, "", []) and comp_materials:
         materials = list(comp_materials)
@@ -396,18 +572,49 @@ def compose(pack: dict, options: dict, source_note: str = "SketchUp") -> str:
         if len(materials) == 1 and materials[0] in MATERIALS:
             materials = list(MATERIALS[materials[0]])
 
-    lighting = pick("lighting")
-    lighting = LIGHTING.get(str(lighting), lighting) if lighting else None
-    season = pick("season_weather")
-    season = SEASON.get(str(season), season) if season else None
+    # 4. lighting + sky + interior_lights
+    lighting = _lookup(LIGHTING, pick("lighting"))
+    sky = _lookup(SKY, pick("sky"))
+    interior = _lookup(INTERIOR_LIGHTS, pick("interior_lights"))
+    if lighting and sky:
+        lighting = _drop_clauses(lighting, SKY_CLAUSE_RE)          # sky option overrides the sky part of lighting
+    if lighting and interior:
+        lighting = _drop_clauses(lighting, INTERIOR_CLAUSE_RE)
+    lighting_bits = [b for b in (lighting, sky, interior) if b]
+
+    # 5. season + vegetation_age
+    season = _lookup(SEASON, pick("season_weather"))
+    if season and sky:
+        season = _drop_clauses(season, SKY_CLAUSE_RE) or None      # sky option also wins over season's sky clause
+    veg = _lookup(VEGETATION_AGE, pick("vegetation_age"))
+    season_bits = [b for b in (season, veg) if b]
+
+    # 6. entourage + people/cars axes
     entourage = _entourage(pick("entourage"))
+    people_phrase = _people_phrase(pick("people_density"), pick("people_activity"))
+    cars_phrase = _cars_phrase(pick("car_density"), pick("car_type"))
+    if people_phrase or cars_phrase:
+        entourage = _merge_entourage(entourage, people_phrase, cars_phrase, pick("car_density") not in (None, ""))
     allowed = pack.get("entourage_allowed")
     if allowed is not None:
         allowed_set = {str(a).strip().lower() for a in _as_list(allowed)}
-        entourage = [e for e in entourage if e.lower() in allowed_set]
+        entourage = [e for e in entourage if e.lower() in allowed_set or e in (people_phrase, cars_phrase)]
+
+    # 7. context + material_wear (emitted only when set; implicit default as_drawn stays silent)
+    context = _lookup(CONTEXT, pick("context"))
+    wear = _lookup(MATERIAL_WEAR, pick("material_wear"))
+    if wear and not context:
+        context = CONTEXT["as_drawn"]
+    context_bits = [b for b in (context, wear) if b]
+
+    # 8. grading = tone + post
     post = options.get("post") or comp_post or pick("post")
-    post = POST.get(str(post), post) if post else None
+    post = _lookup(POST, post)
+    tone = _lookup(TONE, pick("tone"))
+    grading_bits = [b for b in (tone, post) if b]
+
     keep_fixed = _as_list(options.get("keep_fixed")) or _as_list(pack.get("keep_fixed"))
+    references = _as_list(options.get("references")) or _as_list(pack.get("references"))
     negative = pick("negative")
     aspect = options.get("aspect") or pack_aspect(pack)
     if str(aspect).lower() == "auto":
@@ -417,28 +624,79 @@ def compose(pack: dict, options: dict, source_note: str = "SketchUp") -> str:
     if pack.get("geometry_lock"):
         lock.append(_sentence(pack["geometry_lock"]))
 
-    slot_sentences = [f"Produce a {mood_words} of this exact scene: {shot}."]
+    shot_sentence = f"Produce a {mood_words} of this exact scene: {shot}"
     if camera:
-        slot_sentences.append(_sentence(f"Camera: {camera}"))
+        shot_sentence += f"; camera {camera}"
+    slot_sentences = [_sentence(shot_sentence)]
     if materials:
         slot_sentences.append(f"Materials: {', '.join(materials)}.")
-    if lighting:
-        slot_sentences.append(_sentence(f"Lighting: {lighting}"))
-    if season:
-        slot_sentences.append(_sentence(f"Season and weather: {season}"))
+    if lighting_bits:
+        slot_sentences.append(_sentence("Lighting: " + "; ".join(lighting_bits)))
+    if season_bits:
+        slot_sentences.append(_sentence("Season and weather: " + "; ".join(season_bits)))
     if entourage:
-        slot_sentences.append(f"Entourage: {', '.join(entourage)}.")
-    if post:
-        slot_sentences.append(_sentence(f"Post-processing: {post}"))
+        slot_sentences.append(_sentence("Entourage: " + "; ".join(entourage)))
+    if context_bits:
+        slot_sentences.append(_sentence("Context: " + "; ".join(context_bits)))
+    if grading_bits:
+        slot_sentences.append(_sentence("Post-processing: " + "; ".join(grading_bits)))
     slot_sentences = slot_sentences[:MAX_SLOT_SENTENCES]
 
     keeps = [_sentence(k if k.lower().startswith("keep") else f"Keep {k}") for k in keep_fixed]
+    if references:
+        keeps.append(REFERENCES_NOTE)
     tail = []
     if negative:
         tail.append(_sentence(f"Avoid: {negative}"))
     if aspect:
         tail.append(f"Aspect ratio {aspect}.")
-    return " ".join(lock + slot_sentences + keeps + tail)
+    return {"lock": lock, "slots": slot_sentences, "keeps": keeps, "tail": tail,
+            "prompt": " ".join(lock + slot_sentences + keeps + tail)}
+
+
+def compose(pack: dict, options: dict, source_note: str = "SketchUp") -> str:
+    """Return the final prompt string for one render (see compose_parts)."""
+    return compose_parts(pack, options, source_note)["prompt"]
+
+
+# ---------------------------------------------------------------- vocabulary export
+def list_options() -> dict:
+    """Vocabulary as JSON-able dict (webtool syncs from this). enum keys carry `values`; free keys carry `type`."""
+    enum = lambda table, **kw: {"type": "enum", "values": list(table), **kw}  # noqa: E731
+    opts = {
+        "mood": enum(MOOD_WORDS, companion=list(MOOD_COMPANION)),
+        "lighting": enum(LIGHTING, merged_into="lighting"),
+        "sky": enum(SKY, merged_into="lighting", note="overrides sky/cloud clauses of lighting and season text"),
+        "interior_lights": enum(INTERIOR_LIGHTS, merged_into="lighting"),
+        "season_weather": enum(SEASON, merged_into="season"),
+        "vegetation_age": enum(VEGETATION_AGE, merged_into="season"),
+        "camera": enum(CAMERA, merged_into="shot"),
+        "lens_mm": {"type": "int", "merged_into": "shot", "overrides": "camera.lens_mm"},
+        "camera_height_m": {"type": "float", "merged_into": "shot", "overrides": "camera.height"},
+        "tilt": enum(TILT, merged_into="shot", overrides="camera.perspective"),
+        "materials": {"type": "enum_or_list", "values": list(MATERIALS), "sep": ","},
+        "entourage": {"type": "toggles", "values": list(ENTOURAGE_TOGGLES), "format": "people:on,cars:off,..."},
+        "people_density": enum(PEOPLE_DENSITY, merged_into="entourage", requires="entourage.people=on"),
+        "people_activity": enum(PEOPLE_ACTIVITY, merged_into="entourage", requires="entourage.people=on"),
+        "car_density": enum(CAR_DENSITY, merged_into="entourage"),
+        "car_type": enum(CAR_TYPE, merged_into="entourage"),
+        "context": enum(CONTEXT, merged_into="context", default="as_drawn"),
+        "material_wear": enum(MATERIAL_WEAR, merged_into="context"),
+        "tone": enum(TONE, merged_into="grading"),
+        "post": enum(POST, merged_into="grading"),
+        "keep_fixed": {"type": "text_list", "sep": ";"},
+        "references": {"type": "path_list", "sep": ","},
+        "aspect": {"type": "enum", "values": ["4:3", "16:9", "3:2", "1:1", "2:1", "auto"]},
+    }
+    return {
+        "source": "20-knowledge/stylepacks/OPTIONS.md",
+        "max_slot_sentences": MAX_SLOT_SENTENCES,
+        "precedence": "explicit option > pack slot > preset default",
+        "slots_order": ["shot", "materials", "lighting", "season", "entourage", "context", "grading"],
+        "options": opts,
+        "values": {k: v["values"] for k, v in opts.items() if "values" in v},
+        "free": {k: v["type"] for k, v in opts.items() if "values" not in v},
+    }
 
 
 def parse_options(pairs: list[str] | None) -> dict:
@@ -496,6 +754,37 @@ def _selftest() -> int:
     # block list at the same indent as its key must not swallow the following keys (mini parser)
     y = mini_yaml_load("slots:\n  materials:\n  - a\n  - b\n  lighting: x\nsamples:\n- s.png\nchangelog:\n- date: '2026-09-14'\n  note: n\n")
     assert y["slots"] == {"materials": ["a", "b"], "lighting": "x"} and y["changelog"][0]["note"] == "n", y
+    # merged axes: maximal option set stays within the slot cap and every merged axis lands in its sentence
+    pack3 = {"slots": {"shot_type": "eye-level exterior", "lighting": LIGHTING["golden_hour"],
+                       "season_weather": SEASON["summer"],
+                       "entourage": ["two people seated on the balcony", "no cars", "existing trees kept"],
+                       "post": POST["neutral"]}, "negative": "text"}
+    maximal = {"people_density": "busy", "people_activity": "mixed", "car_density": "few", "car_type": "passenger",
+               "sky": "dramatic", "vegetation_age": "mature", "context": "urban_dense", "material_wear": "lived_in",
+               "interior_lights": "all_on", "tone": "editorial_magazine", "lens_mm": "50", "camera_height_m": "2.5",
+               "tilt": "slight_up", "materials": "timber_glass", "references": "refs/a.jpg"}
+    parts = compose_parts(pack3, maximal)
+    s = parts["slots"]
+    assert len(s) <= MAX_SLOT_SENTENCES and len(s) == 7, s
+    assert s[0].startswith("Produce a") and "50mm lens" in s[0] and "2.5 m camera height" in s[0] and "pitched up" in s[0], s[0]
+    assert s[2].startswith("Lighting:") and SKY["dramatic"] in s[2] and INTERIOR_LIGHTS["all_on"] in s[2], s[2]
+    assert "cumulus" not in s[2].split(SKY["dramatic"])[0] and "interior lights on at 2700K" not in s[2], s[2]
+    assert s[3].startswith("Season and weather:") and VEGETATION_AGE["mature"] in s[3] and "cumulus" not in s[3], s[3]
+    assert s[4].startswith("Entourage:") and "fifteen or more" in s[4] and "one to three cars" in s[4] and "no cars" not in s[4], s[4]
+    assert "existing trees kept" in s[4] and s[4].count("people") == 1, s[4]
+    assert s[5].startswith("Context:") and CONTEXT["urban_dense"] in s[5] and MATERIAL_WEAR["lived_in"] in s[5], s[5]
+    assert s[6].startswith("Post-processing:") and TONE["editorial_magazine"] in s[6] and POST["neutral"] in s[6], s[6]
+    assert REFERENCES_NOTE in parts["keeps"] and parts["prompt"].endswith("Avoid: text."), parts
+    # people axes are ignored when the people toggle is off; car_density overrides "no cars"; as_drawn sentence
+    p4 = compose_parts(pack3, {"entourage": "people:off,cars:off", "people_density": "busy", "car_density": "full"})["slots"]
+    ent = [x for x in p4 if x.startswith("Entourage:")][0]
+    assert "no people" in ent and "fifteen" not in ent and CAR_DENSITY["full"] in ent, ent
+    p5 = compose_parts(pack3, {"context": "as_drawn"})["slots"]
+    assert "Context: Do not add surroundings beyond what is drawn." in p5, p5
+    assert not any(x.startswith("Context:") for x in compose_parts(pack3, {})["slots"])   # implicit default is silent
+    lo = list_options()
+    assert len(lo["options"]) >= 20 and set(lo["values"]) | set(lo["free"]) == set(lo["options"]), lo
+    json.dumps(lo)
     print("prompt_compose selftest OK")
     return 0
 
@@ -506,13 +795,19 @@ def main(argv=None) -> int:
     ap.add_argument("--option", action="append", default=[], help="k=v override (repeatable)")
     ap.add_argument("--source-note", default="SketchUp")
     ap.add_argument("--print", action="store_true", help="print prompt (default behaviour)")
+    ap.add_argument("--json", action="store_true", help="print prompt parts as JSON (lock/slots/keeps/tail/prompt)")
+    ap.add_argument("--list-options", action="store_true", help="print the option vocabulary as JSON and exit")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args(argv)
     if a.selftest:
         return _selftest()
+    if a.list_options:
+        print(json.dumps(list_options(), ensure_ascii=False, indent=2))
+        return 0
     if not a.pack:
         ap.error("--pack required")
-    print(compose(load_pack(a.pack), parse_options(a.option), a.source_note))
+    parts = compose_parts(load_pack(a.pack), parse_options(a.option), a.source_note)
+    print(json.dumps(parts, ensure_ascii=False, indent=2) if a.json else parts["prompt"])
     return 0
 
 

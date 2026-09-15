@@ -27,6 +27,7 @@ python3 webtool/server.py --stub          # scripts/ 대신 webtool/stubs/ 사�
 |--------|------|------|------|
 | GET | `/api/packs` | — | `[{id, name, mood, sample, slots}]` — `assets/stylepacks/*/pack.json`. 폴더 없으면 `[]` |
 | POST | `/api/upload` | JSON `{project, shot, data(base64 또는 data URL), ext?}` 또는 multipart `project, shot, file` | `{path, url, size}` → `assets/captures/<P>/<S>/capture.<ext>` (샷당 1장, 덮어씀) |
+| GET | `/api/options` | — | `prompt_compose.py --list-options` JSON 그대로 (`values`, `options`, `free`, `slots_order` …). 503/502면 UI가 내장 어휘로 폴백 |
 | POST | `/api/compose` | `{pack, options}` | `{prompt}` — `prompt_compose.py --pack --option k=v … --print` |
 | POST | `/api/render` | `{project, shot, pack, options, backend(gpt\|grok), aspect}` | render.py의 마지막 JSON 줄 + `url`, `log` |
 | POST | `/api/fix` | `{project, shot, base, mask_png_base64, instruction, backend}` | 같은 JSON 형태 + `mask` (저장된 마스크 경로) |
@@ -41,11 +42,20 @@ python3 webtool/server.py --stub          # scripts/ 대신 webtool/stubs/ 사�
 
 ## 옵션 어휘
 
-`app.js` 상단 `OPTIONS` 상수 한 곳에 있다. 정본은 `20-knowledge/stylepacks/OPTIONS.md`이며 바뀌면 이 상수를 맞춘다.
+**정본은 스크립트다.** 부팅 시 `GET /api/options`(= `prompt_compose.py --list-options`)로 스키마를 받아
+셀렉트를 동적으로 만든다: `values`의 enum 키 → 셀렉트, `free`의 int/float 키 → 숫자 입력, `options[k].merged_into`로
+패널을 7슬롯 그룹으로 묶고, `options[k].requires`(`entourage.people=on`)가 있으면 해당 토글이 꺼진 동안 비활성화한다.
+이 호출이 실패하면 `app.js` 상단 `OPTIONS` 상수(내장 어휘, `20-knowledge/stylepacks/OPTIONS.md` 사본)로 폴백하고 토스트로 알린다.
 
-`prompt_compose.py`로 넘어가는 형태:
-- 셀렉트: `mood=…`, `lighting=…`, `season_weather=…`, `camera=…`, `materials=…`, `post=…` (빈 값 = 팩 기본값, 전송 안 함)
-- 엔투라지 토글: 켜진 것만 모아 `entourage=people,cars`
+**패널 UX** (`app.js`):
+- 옵션은 `merged_into` 그룹을 7개 접이식 섹션으로 묶는다 — 룩(무드·그레이딩) / 빛·하늘 / 계절·식생 / 사람·차(밀도·동작·엔투라지 토글) / 카메라 / 맥락·재질 / 고정(keep_fixed·비율·백엔드). 열림/닫힘은 `localStorage["archi-render.sections"]`에 섹션별로 저장되어 새로고침 후에도 유지된다.
+- 「초기화」: 모든 셀렉트·숫자 입력을 비우고 keep_fixed를 지운 뒤 현재 팩을 다시 선택해 팩 기본값(무드·슬롯 매칭·엔투라지)을 재적용한다. 「무작위 변주」: 카메라 그룹(camera·tilt·lens_mm·camera_height_m)·비율·keep_fixed는 그대로 두고 나머지 enum 축을 무작위로 뽑는다. `requires`가 걸린 축(people_density 등)을 뽑으면 해당 토글을 켠다. 둘 다 프롬프트 미리보기를 갱신한다.
+- 호버 도움말: `/api/options`에 `sentences` 맵(`key → value → 영어 문장`)이 있으면 각 `<option title>`과 선택된 셀렉트의 `title`로 노출한다. 현재 `--list-options`는 이 필드를 내지 않으므로 무동작이다(스크립트가 추가하면 자동 반영).
+- 미리보기 헤더 「잠금 1 + 슬롯 N/7」: `/api/compose` 응답에 `--json` parts(`slots` 배열)가 있으면 그 길이를 쓰고, 지금처럼 `{prompt}`만 오면 `. `로 문장을 나눠 잠금·Avoid·Aspect 문장을 제외한 개수를 `≈N`으로 표시한다. 분모는 `max_slot_sentences`(기본 7).
+
+`prompt_compose.py`로 넘어가는 형태 (`--option k=v`, 값은 `values`의 이름 그대로):
+- 셀렉트/숫자: `k=v` (빈 값 = 팩 기본값, 전송 안 함)
+- 엔투라지 토글: 사용자가 토글을 한 번이라도 건드린 뒤에만 `entourage=people:on,cars:off,vegetation:off,furniture:off` (네 개 모두 on/off 명시). 안 건드렸으면 팩 기본값을 존중해 전송하지 않음
 - keep_fixed: 줄바꿈을 `; `로 합쳐 `keep_fixed=a; b`
 - aspect: `auto`가 아니면 `--aspect W:H` 플래그로 별도 전달
 

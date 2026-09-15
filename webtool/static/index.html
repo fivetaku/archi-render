@@ -47,22 +47,31 @@
 
     <div class="panel">
       <h2>4. 옵션</h2>
-      <div id="options" class="options"></div>
-      <label class="block">고정 유지 (keep_fixed)
-        <textarea id="keep_fixed" rows="3" placeholder="예) 건물 매스와 창 분할은 그대로&#10;전면 도로 폭 유지"></textarea>
-      </label>
-      <div class="row">
-        <label>비율 <select id="aspect"></select></label>
-        <fieldset class="radio-group">
-          <legend>백엔드</legend>
-          <label><input type="radio" name="backend" value="gpt" checked> gpt</label>
-          <label><input type="radio" name="backend" value="grok"> grok</label>
-        </fieldset>
+      <div class="presets">
+        <button id="btn-reset" type="button" class="ghost" title="모든 축을 팩 기본값으로, 토글은 팩 기본, keep_fixed 비움">초기화</button>
+        <button id="btn-random" type="button" class="ghost" title="카메라·비율·고정 유지는 그대로 두고 나머지 축을 무작위로 뽑음">무작위 변주</button>
       </div>
+      <div id="options" class="options"></div>
+      <details class="sec" data-sec="fixed" open>
+        <summary>고정</summary>
+        <div class="sec-body">
+          <label class="block">고정 유지 (keep_fixed)
+            <textarea id="keep_fixed" rows="3" placeholder="예) 건물 매스와 창 분할은 그대로&#10;전면 도로 폭 유지"></textarea>
+          </label>
+          <div class="row">
+            <label>비율 <select id="aspect"></select></label>
+            <fieldset class="radio-group">
+              <legend>백엔드</legend>
+              <label><input type="radio" name="backend" value="gpt" checked> gpt</label>
+              <label><input type="radio" name="backend" value="grok"> grok</label>
+            </fieldset>
+          </div>
+        </div>
+      </details>
     </div>
 
     <div class="panel">
-      <h2>5. 프롬프트 미리보기</h2>
+      <h2>5. 프롬프트 미리보기 <span id="prompt-stats" class="muted"></span></h2>
       <pre id="prompt-preview" class="prompt">팩을 선택하면 프롬프트가 여기에 표시됩니다.</pre>
       <div class="actions">
         <button id="btn-render" class="primary" disabled>렌더</button>

@@ -119,13 +119,31 @@ def image_size(path: Path):
         return list(im.size)
 
 
+def reference_paths(pack: dict, options: dict) -> list[Path]:
+    """`references` from --option (cwd-relative) or the pack (pack-dir-relative); missing files are skipped with a note."""
+    out = []
+    opt = options.get("references")
+    items = list(opt) if opt else list(pack.get("references") or [])
+    base = Path.cwd() if opt else Path(pack.get("_path", ".")).parent
+    for it in items:
+        q = Path(str(it)).expanduser()
+        q = q if q.is_absolute() else (base / q)
+        if q.is_file():
+            out.append(q.resolve())
+        else:
+            sys.stderr.write(f"[render] reference not found, skipped: {q}\n")
+    return out
+
+
 # ---------------------------------------------------------------- backends
-def call_imagen(prompt_file: Path, target: Path, aspect: str | None, ref: Path) -> Path:
+def call_imagen(prompt_file: Path, target: Path, aspect: str | None, ref: Path, extra_refs: list[Path] | None = None) -> Path:
     """gpt-image via pumasi imagen.sh (only allowed gpt path). Returns the produced file."""
     imagen = _latest(IMAGEN_GLOB)
     if not imagen:
         raise RuntimeError("pumasi imagen.sh not found (gptaku-plugins/pumasi)")
     cmd = ["bash", imagen, str(prompt_file), str(target), aspect or "", "--ref", str(ref)]
+    for r in extra_refs or []:  # stylepack/option `references` (imagen.sh accepts repeated --ref)
+        cmd += ["--ref", str(r)]
     r = subprocess.run(cmd, capture_output=True, text=True)
     sys.stderr.write(r.stdout[-2000:] + r.stderr[-2000:])
     if r.returncode != 0:
@@ -219,7 +237,7 @@ def run_full(a) -> dict:
         t0 = time.time()
         try:
             if a.backend == "gpt":
-                out = call_imagen(rev_dir / "prompt.txt", rev_dir / "render.png", aspect, inp)
+                out = call_imagen(rev_dir / "prompt.txt", rev_dir / "render.png", aspect, inp, reference_paths(pack, options))
             else:
                 out, meta["usage"] = call_router_edit(prompt, inp, None, rev_dir)
         except Exception:

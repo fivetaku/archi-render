@@ -1,0 +1,63 @@
+{
+  "_comment": "selftest fixture: one value from every merged/new axis (OPTIONS.md vocabulary). selftest.sh composes this against every pack and asserts the 7-sentence slot cap plus presence of each merged sentence. people_density/people_activity are only expected when the pack's people toggle is on (packs with 'no added people' ignore them by rule).",
+  "options": {
+    "people_density": "busy",
+    "people_activity": "mixed",
+    "car_density": "few",
+    "car_type": "passenger",
+    "sky": "dramatic",
+    "vegetation_age": "mature",
+    "context": "urban_dense",
+    "material_wear": "lived_in",
+    "interior_lights": "all_on",
+    "tone": "editorial_magazine",
+    "lens_mm": "50",
+    "camera_height_m": "2.5",
+    "tilt": "slight_up",
+    "lighting": "night_full",
+    "season_weather": "monsoon_rain",
+    "materials": "timber_glass",
+    "post": "warm_film",
+    "keep_fixed": "the canopies white",
+    "aspect": "16:9"
+  },
+  "expect_in_slots": {
+    "shot": [
+      "Produce a",
+      "50mm lens",
+      "2.5 m camera height",
+      "pitched up"
+    ],
+    "lighting": [
+      "Lighting:",
+      "towering cumulonimbus",
+      "every interior light on"
+    ],
+    "season": [
+      "Season and weather:",
+      "monsoon downpour",
+      "8 to 10 m canopies"
+    ],
+    "entourage": [
+      "Entourage:",
+      "one to three cars",
+      "passenger cars only"
+    ],
+    "context": [
+      "Context:",
+      "dense urban surroundings",
+      "lightly lived-in"
+    ],
+    "grading": [
+      "Post-processing:",
+      "editorial architecture-magazine",
+      "warm film-like grading"
+    ]
+  },
+  "expect_in_slots_if_people_on": {
+    "entourage": [
+      "fifteen or more",
+      "in a mix of walking"
+    ]
+  }
+}

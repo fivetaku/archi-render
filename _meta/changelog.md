@@ -11,3 +11,4 @@
 | 2026-09-14 | 지식 베이스 시드: research 01·02, trials 2건, backends.md·capture-protocol.md·kb-link.md, 10-planning/curriculum.md | 20-knowledge, 10-planning | 리서치·2026-09-14 트라이얼 결정(gpt 전체/grok 수정) 이관 |
 | 2026-09-14 | Deviation Table 7행 추가 (커맨드·폴더·팩·백엔드 정책·KB·70-private·미적용 옵션) | _meta/deviations.md | Custom Path 기록 의무 |
 | 2026-09-14 | E2E 실동 검증 후 render.py UA 헤더·실패 정리, qa_geometry 경보 조건 완화. demo-cafe 프로젝트(S01 grok+fix, S02 gpt) 산출 | scripts/render.py, scripts/qa_geometry.py | 실측 결함 수정 |
+| 2026-09-15 | 옵션 축 14종 확장 + 병합 규칙 + --list-options, 웹툴 패널 동적화(접이식·초기화·무작위 변주) | scripts/prompt_compose.py, 20-knowledge/stylepacks/OPTIONS.md, webtool/ | 스타일 다양성 부족 지적 반영 |

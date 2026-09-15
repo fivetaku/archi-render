@@ -30,6 +30,40 @@ RENDER_TIMEOUT = 600                  # seconds; render is synchronous
 COMPOSE_TIMEOUT = 30
 SAFE_ID = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 IMG_EXT = {"png", "jpg", "jpeg", "webp"}
+REF_EXT = IMG_EXT | {"gif"}
+MAX_REFS = 8                          # references per shot (refs/ref-<n>.<ext>)
+
+# Option vocabulary fallback — used when `prompt_compose.py --list-options` is missing or fails.
+# Source of truth: 20-knowledge/stylepacks/OPTIONS.md (keep in sync). Value order = UI order.
+FALLBACK_OPTIONS = {
+    "mood": ["photoreal", "cinematic", "clay", "watercolor", "diagram"],
+    "tone": ["editorial_magazine", "real_estate_ad", "competition_panel", "documentary"],
+    "post": ["neutral", "teal_orange", "warm_film", "bw"],
+    "lighting": ["overcast", "midday", "golden_hour", "dusk", "night", "blue_hour",
+                 "dawn", "morning_side", "afternoon_backlit", "night_signs_only", "night_full"],
+    "sky": ["clear", "scattered_cumulus", "overcast", "dramatic", "haze"],
+    "interior_lights": ["off", "partial", "all_on"],
+    "season_weather": ["spring", "summer", "autumn", "winter", "rain", "snow",
+                       "early_spring_blossom", "monsoon_rain", "late_autumn", "heavy_snow", "haze", "fog"],
+    "vegetation_age": ["young", "mature", "lush"],
+    "entourage": ["people", "cars", "vegetation", "furniture"],
+    "people_density": ["none", "sparse", "moderate", "busy"],
+    "people_activity": ["walking", "standing_talking", "seated", "mixed"],
+    "car_density": ["none", "few", "full"],
+    "car_type": ["passenger", "mixed_commercial", "bicycles_only"],
+    "camera": ["eye_level", "elevated", "drone", "interior"],
+    "lens_mm": [],
+    "camera_height_m": [],
+    "tilt": ["level", "slight_up", "slight_down"],
+    "aspect": ["auto", "4:3", "16:9", "3:2", "1:1", "2:1"],
+    "context": ["as_drawn", "urban_dense", "suburban", "rural", "waterfront", "forest"],
+    "materials": ["white_stucco_oak", "board_formed_concrete", "brick_dark_metal", "timber_glass", "clay_massing"],
+    "material_wear": ["new", "lived_in", "weathered"],
+    "keep_fixed": [],
+    "references": [],
+}
+FALLBACK_TYPES = {"lens_mm": "number", "camera_height_m": "number", "keep_fixed": "free",
+                  "references": "files", "entourage": "toggles"}
 
 
 # ---------------------------------------------------------------- helpers
@@ -236,6 +270,120 @@ def api_upload(_q, body):
     return {"path": os.path.relpath(path, ROOT), "url": url_for(path), "size": len(raw)}
 
 
+def _normalize_options(raw):
+    """Accept the shapes `--list-options` may print and return
+    {options: {key: {values: [...], type: enum|number|free|files|toggles}}, sentences: {key: {value: text}}}."""
+    if not isinstance(raw, dict):
+        raise ValueError("options JSON must be an object")
+    body = raw.get("options") if isinstance(raw.get("options"), dict) else raw
+    sentences = raw.get("sentences") if isinstance(raw.get("sentences"), dict) else {}
+    flagged = {}
+    for flag, typ in (("free_text", "free"), ("free", "free"), ("numeric", "number"), ("number", "number"),
+                      ("files", "files"), ("toggles", "toggles")):
+        for k in raw.get(flag) or []:
+            flagged[str(k)] = typ
+    out = {}
+    for key, spec in body.items():
+        if key in ("sentences", "free_text", "free", "numeric", "number", "files", "toggles"):
+            continue
+        typ, values = None, []
+        if isinstance(spec, dict):
+            values = spec.get("values") or spec.get("choices") or []
+            typ = spec.get("type") or spec.get("kind")
+            if isinstance(spec.get("sentences"), dict):
+                sentences.setdefault(key, {}).update(spec["sentences"])
+            if spec.get("free") or spec.get("free_text"):
+                typ = typ or "free"
+            if spec.get("numeric") or spec.get("number"):
+                typ = typ or "number"
+        elif isinstance(spec, list):
+            values = spec
+        elif isinstance(spec, str):
+            typ = spec
+        typ = flagged.get(key) or typ or FALLBACK_TYPES.get(key) or ("enum" if values else "free")
+        if typ in ("string", "text"):
+            typ = "free"
+        if typ in ("int", "float", "numeric"):
+            typ = "number"
+        out[key] = {"values": [str(v) for v in values], "type": typ}
+    return {"options": out, "sentences": sentences}
+
+
+def api_options(_q, _body):
+    """Option vocabulary for the panel. Real: prompt_compose.py --list-options; else built-in fallback."""
+    try:
+        stdout, _ = run_script([script("prompt_compose.py"), "--list-options"], COMPOSE_TIMEOUT)
+        norm = _normalize_options(json.loads(stdout.strip() or "{}"))
+        if not norm["options"]:
+            raise ValueError("empty option list")
+        norm["source"] = "prompt_compose"
+        return norm
+    except (ApiError, ValueError, json.JSONDecodeError) as e:
+        norm = _normalize_options(dict(FALLBACK_OPTIONS))
+        norm["source"] = "fallback"
+        norm["fallback_reason"] = getattr(e, "message", None) or str(e)
+        return norm
+
+
+def list_refs(project, shot):
+    d = p("assets", "captures", project, shot, "refs")
+    out = []
+    if os.path.isdir(d):
+        for name in sorted(os.listdir(d)):
+            if name.startswith("ref-") and name.rsplit(".", 1)[-1].lower() in REF_EXT:
+                full = os.path.join(d, name)
+                out.append({"path": os.path.relpath(full, ROOT), "url": url_for(full), "name": name})
+    return out
+
+
+def api_upload_ref(_q, body):
+    """Attach a reference image: assets/captures/<P>/<S>/refs/ref-<n>.<ext>. Returns the new ref + full list."""
+    project = safe_id(body.get("project"), "project")
+    shot = safe_id(body.get("shot"), "shot")
+    raw, mime = decode_data(body.get("data", ""))
+    if not raw:
+        raise ApiError(400, "empty upload")
+    ext = (body.get("ext") or (mimetypes.guess_extension(mime or "") or "").lstrip(".") or "png").lower()
+    if ext == "jpe":
+        ext = "jpg"
+    if ext not in REF_EXT:
+        raise ApiError(400, f"unsupported reference type: {ext}")
+    d = p("assets", "captures", project, shot, "refs")
+    os.makedirs(d, exist_ok=True)
+    existing = list_refs(project, shot)
+    if len(existing) >= MAX_REFS:
+        raise ApiError(400, f"at most {MAX_REFS} references per shot", refs=existing)
+    n = 1
+    while any(r["name"].startswith(f"ref-{n}.") for r in existing):
+        n += 1
+    path = os.path.join(d, f"ref-{n}.{ext}")
+    with open(path, "wb") as fh:
+        fh.write(raw)
+    return {"path": os.path.relpath(path, ROOT), "url": url_for(path), "size": len(raw), "n": n,
+            "refs": list_refs(project, shot)}
+
+
+def api_ref_delete(_q, body):
+    project = safe_id(body.get("project"), "project")
+    shot = safe_id(body.get("shot"), "shot")
+    name = safe_id(body.get("name"), "name")
+    if not name.startswith("ref-"):
+        raise ApiError(400, "not a reference file")
+    full = p("assets", "captures", project, shot, "refs", name)
+    if os.path.isfile(full):
+        os.remove(full)
+    return {"refs": list_refs(project, shot)}
+
+
+def api_options(_q, _body):
+    """Option schema from `prompt_compose.py --list-options` (values/options/free/slots_order)."""
+    stdout, _ = run_script([script("prompt_compose.py"), "--list-options"], COMPOSE_TIMEOUT)
+    try:
+        return json.loads(stdout)
+    except json.JSONDecodeError:
+        raise ApiError(502, "--list-options did not print JSON", stdout=stdout[-1000:])
+
+
 def api_compose(_q, body):
     pack = safe_id(body.get("pack"), "pack")
     args = [script("prompt_compose.py"), "--pack", pack] + option_args(body.get("options")) + ["--print"]
@@ -332,7 +480,7 @@ def api_revisions(q, _body):
                         "masks": sorted(m for m in os.listdir(rev_dir) if m.startswith("mask_"))})
     capture = find_capture(project, shot)
     return {"project": project, "shot": shot, "capture": url_for(capture) if capture else None,
-            "revisions": out}
+            "revisions": out, "refs": list_refs(project, shot)}
 
 
 def api_pack_save(_q, body):
@@ -351,10 +499,10 @@ def api_pack_save(_q, body):
         return v if isinstance(v, list) else [x.strip() for x in str(v).split(sep) if x.strip()]
 
     slots = dict(template.get("slots") or {})          # template slots, overridden by UI choices
-    for k, v in options.items():
-        if k in ("mood", "keep_fixed", "aspect") or v in ("", None, False):
+    for k, v in options.items():                      # every axis except per-shot keys lands in slots
+        if k in ("mood", "keep_fixed", "aspect", "references") or v in ("", None, False):
             continue
-        slots[k] = as_list(v) if k in ("materials", "entourage") else v
+        slots[k] = as_list(v) if k in ("materials", "entourage") else str(v)
     inherited = {k: v for k, v in template.items()
                  if k not in ("id", "version", "name", "mood", "slots", "keep_fixed", "samples", "changelog")}
     pack = {"id": full_id, "version": "1.0.0", "name": name,
@@ -373,7 +521,11 @@ def api_pack_save(_q, body):
 
 ROUTES = {
     ("GET", "/api/packs"): api_packs,
+    ("GET", "/api/options"): api_options,
+    ("POST", "/api/upload_ref"): api_upload_ref,
+    ("POST", "/api/ref/delete"): api_ref_delete,
     ("POST", "/api/upload"): api_upload,
+    ("GET", "/api/options"): api_options,
     ("POST", "/api/compose"): api_compose,
     ("POST", "/api/render"): api_render,
     ("POST", "/api/fix"): api_fix,
@@ -425,7 +577,7 @@ class Handler(BaseHTTPRequestHandler):
             self._json(500, {"error": f"{type(e).__name__}: {e}"})
 
     def _multipart(self, raw):
-        """Minimal multipart parser for /api/upload (fields: project, shot, file)."""
+        """Minimal multipart parser for /api/upload and /api/upload_ref (fields: project, shot, file)."""
         ctype = self.headers.get("Content-Type", "")
         m = re.search(r'boundary="?([^";]+)"?', ctype)
         if not m:
