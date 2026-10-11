@@ -86,6 +86,36 @@ def tkt_get(service: str) -> str:
     return r.stdout.strip().splitlines()[-1].strip()
 
 
+DEFAULT_ROUTER_URL = "https://router.axwith.com/api/v1"
+
+
+def _dotenv() -> dict:
+    """레포 루트 .env (KEY=VALUE). 볼트가 없는 수강생 PC용. git에서 제외됨."""
+    env_path = ROOT / ".env"
+    out = {}
+    if env_path.is_file():
+        for line in env_path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                out[k.strip()] = v.strip().strip('"').strip("'")
+    return out
+
+
+def router_credentials() -> tuple[str, str]:
+    """키 순서: 환경변수 INSANE_ROUTER_KEY → 레포 .env → tikeytaka 볼트(강사 PC)."""
+    dot = _dotenv()
+    key = os.environ.get("INSANE_ROUTER_KEY") or dot.get("INSANE_ROUTER_KEY")
+    url = os.environ.get("INSANE_ROUTER_URL") or dot.get("INSANE_ROUTER_URL")
+    if key:
+        return (url or DEFAULT_ROUTER_URL).rstrip("/"), key
+    try:
+        return tkt_get("insane-router-url").rstrip("/"), tkt_get(ROUTER_KEY_SERVICE)
+    except RuntimeError:
+        raise RuntimeError("라우터 키가 없습니다. 레포 폴더의 .env.example을 .env로 복사하고 "
+                           "INSANE_ROUTER_KEY= 뒤에 받은 키를 붙여넣으세요.") from None
+
+
 def sha1(path: Path) -> str:
     h = hashlib.sha1()
     with open(path, "rb") as f:
@@ -190,8 +220,7 @@ def _multipart(fields: dict, files: dict) -> tuple[bytes, str]:
 
 def call_router_edit(prompt: str, image: Path, mask: Path | None, out_dir: Path) -> tuple[Path, dict]:
     """POST {URL}/images/edits (grok). Downloads data[0].url immediately (temporary URL)."""
-    url = tkt_get("insane-router-url").rstrip("/")
-    key = tkt_get(ROUTER_KEY_SERVICE)
+    url, key = router_credentials()
     files = {"image": image}
     if mask:
         files["mask"] = mask

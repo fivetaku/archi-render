@@ -39,6 +39,8 @@
 
 마스크 수정(grok)은 라우터 키가 필요하다. render.py 기본 키는 `insane-router-key-aside`이며, 전용 키를 `insane-router-connect` 스킬로 발급하면 `ARCHI_RENDER_ROUTER_KEY_SERVICE`로 지정한다. OpenAI/Google 원본 키는 쓰지 않는다.
 
+**수강생 PC (볼트 없음)** — 영역 수정(grok)을 쓰려면 강사에게 받은 키를 넣는다. 레포 폴더에서 `.env.example`을 복사해 `.env`를 만들고 `INSANE_ROUTER_KEY=` 뒤에 키를 붙여넣은 뒤 웹툴을 다시 켠다(`python3 webtool/server.py`). `.env`는 git에서 제외된다. 키 읽는 순서: 환경변수 `INSANE_ROUTER_KEY` → `.env` → 볼트.
+
 ## 문서
 
 - [CLAUDE.md](./CLAUDE.md) — 정본 instruction surface (12섹션)
