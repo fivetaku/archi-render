@@ -16,7 +16,7 @@
 4. 내 캡처 넣기: `$development-intake 내프로젝트 ~/Downloads/캡처폴더` (또는 "이 폴더 인입해 줘")
 5. 스타일 둘러보기: `$development-stylepack list` (또는 "스타일팩 뭐 있어?")
 
-칠한 곳만 고치는 마스크 수정(웹툴 Fix)은 렌더 키가 있는 강사 PC에서 합니다. `.codex/` 폴더는 강사 PC 설정(모델 고정·안전 훅)이라 수강생 PC에서 문제가 되면 지워도 됩니다.
+칠한 곳만 고치는 마스크 수정(웹툴 Fix)은 강사에게 받은 키를 `.env`에 넣으면 수강생 PC에서도 됩니다 → [키 설정 안내](./30-docs/student-key-setup.md). `.codex/` 폴더는 강사 PC 설정(모델 고정·안전 훅)이라 수강생 PC에서 문제가 되면 지워도 됩니다.
 
 아래 빠른 시작은 강사 PC(렌더 백엔드 설치) 기준입니다. `/intake` 같은 슬래시 표기는 Claude Code 문법이고, Codex에서는 `$development-intake`처럼 씁니다.
 
@@ -39,7 +39,7 @@
 
 마스크 수정(grok)은 라우터 키가 필요하다. render.py 기본 키는 `insane-router-key-aside`이며, 전용 키를 `insane-router-connect` 스킬로 발급하면 `ARCHI_RENDER_ROUTER_KEY_SERVICE`로 지정한다. OpenAI/Google 원본 키는 쓰지 않는다.
 
-**수강생 PC (볼트 없음)** — 영역 수정(grok)을 쓰려면 강사에게 받은 키를 넣는다. 레포 폴더에서 `.env.example`을 복사해 `.env`를 만들고 `INSANE_ROUTER_KEY=` 뒤에 키를 붙여넣은 뒤 웹툴을 다시 켠다(`python3 webtool/server.py`). `.env`는 git에서 제외된다. 키 읽는 순서: 환경변수 `INSANE_ROUTER_KEY` → `.env` → 볼트.
+**수강생 PC (볼트 없음)** — 영역 수정(grok)을 쓰려면 강사에게 받은 키를 넣는다. 레포 폴더에서 `.env.example`을 복사해 `.env`를 만들고 `INSANE_ROUTER_KEY=` 뒤에 키를 붙여넣은 뒤 웹툴을 다시 켠다(`python3 webtool/server.py`). `.env`는 git에서 제외된다. 키 읽는 순서: 환경변수 `INSANE_ROUTER_KEY` → `.env` → 볼트. 자세한 절차: [30-docs/student-key-setup.md](./30-docs/student-key-setup.md).
 
 ## 문서
 
