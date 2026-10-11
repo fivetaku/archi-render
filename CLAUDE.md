@@ -92,7 +92,7 @@ archi-render/
 │   ├── stylepacks/                   # DYNAMIC_PACK.md · OPTIONS.md
 │   ├── research/                     # 01_full_report.md · 02_workspace_design_inputs.md
 │   ├── trials/                       # 백엔드 비교·API 실측 기록
-│   └── frameworks/                   # owasp-top10 · rag-chunking · subtype-eval-harness
+│   └── frameworks/                   # owasp-top10 · subtype-eval-harness (rag-chunking은 90-archive)
 ├── 30-docs/                          # scripts-layer.md · 웹툴 사용법 (SketchUp 절차는 capture-protocol.md)
 ├── 40-reports/                       # qa/ · cost/ · test-results · review
 ├── 50-output/<project>/              # 납품 컨택트시트·final/·manifest.json
@@ -218,7 +218,7 @@ NOT-trigger:
 - **캡처 규약** (`20-knowledge/capture-protocol.md`) — 클레이/모노크롬 + 그림자 On + Scene 잠금 + 긴 변 ≥2000px + 단색 배경 + `<project>/<shot>/capture.png` + camera.json 선택. `/intake` Step 2에서 호출. 근거: SketchUp 뎁스맵 부재(clm_026), 선화 입력의 지붕 드리프트(E2·E4).
 - **백엔드 능력 카드** (`20-knowledge/backends.md`) — gpt(pumasi --ref): img2img·마스크 없음·1~2분·입력 비율 근사. grok(router): img2img + 마스크·12~18초·출력 1152×864(4:3) 고정·임시 URL. 라우터 gpt-image edits 501, Gemini 없음. `/render`·`/fix`의 백엔드 선택에서 호출.
 - **리비전·승인 모델** (clm_009) — R00/R01 자동 태그, clay → internal → client → approval. `/approve`·`/deliver`에서 호출.
-- **OWASP Top 10 / SOLID / Subtype Eval Harness** — `20-knowledge/frameworks/`, `/design` Step 2 인라인. 스크립트·웹툴 개발 트랙의 `/review`·`/test`에서 호출. 검색이 없으므로 RAG Chunking은 호출하지 않는다.
+- **OWASP Top 10 / SOLID / Subtype Eval Harness** — `20-knowledge/frameworks/`, `/design` Step 2 인라인. 스크립트·웹툴 개발 트랙의 `/review`·`/test`에서 호출. 검색이 없으므로 RAG Chunking은 `90-archive/frameworks/`로 보관했다(2026-10-11).
 
 Lite에서도 캡처 규약·기하 잠금 꼬리·renders/ 격리는 유지합니다. 미사용 방법론(RAG·ControlNet)을 Full이라는 이유로 강제하지 않습니다.
 

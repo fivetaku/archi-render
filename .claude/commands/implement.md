@@ -27,7 +27,7 @@ description: "코드 구현, 부분 수정, 버그 수정, LLM 통합 보완, �
 
 ### Step 3: 검색이 필요한 LLM 앱에만 RAG 적용
 
-- llm-app 중 실제 검색/검색증강이 필요한 경우에만 `20-knowledge/frameworks/rag-chunking.md`를 적용합니다. 검색 없는 호출·분류·변환 앱에 벡터 DB나 청킹을 추가하지 않습니다.
+- 이 워크스페이스에는 검색 기능이 없다. 벡터 DB나 청킹을 추가하지 않는다(RAG 가이드는 `90-archive/frameworks/rag-chunking.md`에 보관).
 - `prompts/`와 `evals/llm-app/`를 함께 갱신합니다.
 
 ### Step 4: 저장

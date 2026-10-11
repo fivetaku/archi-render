@@ -119,15 +119,6 @@
       ]
     },
     {
-      "name": "RAG Chunking",
-      "path": "20-knowledge/frameworks/rag-chunking.md",
-      "applies_to": [
-        "implement",
-        "review",
-        "llm-app"
-      ]
-    },
-    {
       "name": "Subtype Eval Harness",
       "path": "20-knowledge/frameworks/subtype-eval-harness.md",
       "applies_to": [

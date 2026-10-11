@@ -1,6 +1,8 @@
 # 워크스페이스 설계 입력 명세 — 건축 AI 렌더 워크스페이스 (Phase 1~3 인터뷰 입력)
 
 > 이 문서는 Workspace_Builder의 Phase 1(컨텍스트)·Phase 2(아키타입)·Phase 3(상세 설계)에 그대로 투입하기 위한 결정·제안·미결 목록이다.
+
+> **2026-10-11 갱신 주의**: 이 문서는 기준일 시점 기록이다. 그 뒤 바뀐 사실 — SketchUp 2026.2가 이 맥에 설치돼 `-RubyStartup`으로 자동 실행 가능, grok 출력은 1152×864(4:3) 고정, 전체 렌더는 gpt만(grok 자동 폴백 없음), 수강생 Codex 앱은 `$development-image`로 렌더. 현행 정본은 `20-knowledge/backends.md`·`capture-protocol.md`.
 > "사실"은 `01_full_report.md`의 검증 주장 `(clm 번호)`을 인용하고, "제안"은 설계 판단임을 명시한다. 미확정 사항은 §9에 모아 인터뷰 질문으로 넘긴다.
 
 ---

@@ -263,7 +263,6 @@ Critical/High는 실제 외부 입력 경로와 민감 자산 영향이 함께 �
 
 - **`solid-principles.md`** — OWASP가 "무엇이 위험한가"를 찾으면 SOLID는 "어디에 책임을 둬야 고칠 수 있는가"를 결정합니다. 인증/인가가 handler마다 흩어져 있으면 A01 finding과 함께 SRP/DIP 위반도 확인합니다.
 - **`subtype-eval-harness.md`** — OWASP finding은 재발 방지 테스트로 닫습니다. API는 통합 테스트, CLI는 악성 입력 fixture, LLM 앱은 tool-call eval, automation은 dry-run/권한 fixture로 연결합니다.
-- **`rag-chunking.md`** — LLM 앱에서 RAG 문서와 외부 URL fetch가 결합되면 A08/A10을 우선합니다. 검색 품질 문제와 보안 경계 문제를 분리해서 보고합니다.
 
 ## 변경 이력
 

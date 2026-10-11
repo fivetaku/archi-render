@@ -176,7 +176,6 @@ def test_output_schema(prompt, schema):
 ```
 
 LLM 앱 결과 리포트는 prompt snapshot 통과 수, 동일 입력 N회 안정성, 출력 스키마 위반, 입력/출력 토큰 예산, 평균 지연시간을 포함합니다.
-RAG가 포함되면 `rag-chunking.md`의 Recall@K, 근거 문서 누락, 환각률을 별도 하위 지표로 연결합니다.
 
 ## 7. 자동화 스크립트 subtype eval harness
 
@@ -283,7 +282,6 @@ LLM 앱:
 
 - **`owasp-top10.md`** — OWASP는 위험을 찾고, 이 문서는 위험이 재발하지 않도록 subtype별 회귀 테스트로 닫습니다.
 - **`solid-principles.md`** — SOLID는 테스트 가능한 경계를 설계하게 하고, 이 문서는 그 경계가 사용자 계약으로 검증되는지 확인합니다.
-- **`rag-chunking.md`** — LLM 앱에서 RAG가 포함되면 프롬프트 snapshot만으로 완료 처리하지 않고 검색 품질과 근거 문서 연결을 하위 지표로 묶습니다.
 
 ## 변경 이력
 

@@ -1,6 +1,8 @@
 # 건축 설계 → SketchUp 샷 캡처 → AI 렌더 워크스페이스 설계용 KB 리서치 — 본문
 
 > 세션: `arch_ai_render_workspace_20260911_1735` · 기준일 2026-09-11 · 소스 327건 · 핵심 주장 92건(verified 63 / unresolved 25 / refuted 4)
+
+> **2026-10-11 갱신 주의**: 이 문서는 기준일 시점 기록이다. 그 뒤 바뀐 사실 — SketchUp 2026.2가 이 맥에 설치돼 `-RubyStartup`으로 자동 실행 가능, grok 출력은 1152×864(4:3) 고정, 전체 렌더는 gpt만(grok 자동 폴백 없음), 수강생 Codex 앱은 `$development-image`로 렌더. 현행 정본은 `20-knowledge/backends.md`·`capture-protocol.md`.
 > 본문의 단정 문장은 `(clm 번호)`로 표기된 **검증 통과 주장**만 근거로 한다. 미확정·반증 주장은 §8~§9와 `03_appendix_unresolved_refuted.md`에만 나온다.
 > 실행 검증(run-confirmed) 6건은 `artifacts/exec_tests/README.md`에 재현 절차·응답·결과 이미지가 있다.
 

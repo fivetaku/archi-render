@@ -36,7 +36,6 @@ $development-review --all
 ### Step 3: SOLID와 RAG 품질 점검
 
 - 실제 모듈·인터페이스 설계가 있는 부분에 SOLID를 적용합니다. 작은 단일 함수/스크립트에서는 정확성·경계·중복을 검토하며 불필요한 클래스·레이어를 만들지 않습니다. 적용되지 않는 원칙은 생략합니다.
-- 검색을 사용하는 llm-app에만 `20-knowledge/frameworks/rag-chunking.md`의 청킹·메타데이터·검색 평가를 확인합니다.
 
 ### Step 4: 결과 정리
 
