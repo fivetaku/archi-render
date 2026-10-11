@@ -25,6 +25,7 @@ import mimetypes
 import os
 import re
 import shutil
+import ssl
 import subprocess
 import sys
 import time
@@ -35,7 +36,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import mask_convert  # noqa: E402
+try:
+    import mask_convert  # noqa: E402
+except ModuleNotFoundError as _e:
+    if _e.name == "PIL":
+        sys.exit("[실행 불가] 이미지 처리 라이브러리 Pillow가 없습니다. 터미널에서 "
+                 "`python3 -m pip install --user pillow` 를 한 번 실행한 뒤 다시 시도하세요.")
+    raise
 import prompt_compose  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -47,6 +54,19 @@ GROK_MODEL = "x-ai/grok-imagine-image-2.0"
 ROUTER_KEY_SERVICE = os.environ.get("ARCHI_RENDER_ROUTER_KEY_SERVICE", "insane-router-key-aside")
 ASPECTS = {"16:9": 16 / 9, "4:3": 4 / 3, "3:2": 3 / 2, "1:1": 1.0, "9:16": 9 / 16, "3:4": 3 / 4, "2:3": 2 / 3}
 IMG_EXTS = (".png", ".jpg", ".jpeg", ".webp")
+
+
+def _ssl_context() -> ssl.SSLContext:
+    """python.org 설치본은 인증서 설치 단계를 건너뛰면 HTTPS가 CERTIFICATE_VERIFY_FAILED로 막힌다
+    (2026-10-11 강사 PC 실측). certifi가 있으면 그 묶음을 쓴다."""
+    try:
+        import certifi
+        return ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        return ssl.create_default_context()
+
+
+SSL_CTX = _ssl_context()
 
 
 # ---------------------------------------------------------------- helpers
@@ -181,7 +201,7 @@ def call_router_edit(prompt: str, image: Path, mask: Path | None, out_dir: Path)
                                           # Cloudflare 앞단이 기본 Python-urllib UA를 1010으로 차단함 (2026-09-14 실측)
                                           "User-Agent": "archi-render/1.0 (+curl-compatible)"})
     try:
-        with urllib.request.urlopen(req, timeout=240) as resp:
+        with urllib.request.urlopen(req, timeout=240, context=SSL_CTX) as resp:
             payload = json.loads(resp.read().decode())
     except urllib.error.HTTPError as e:
         raise RuntimeError(f"router HTTP {e.code}: {e.read()[:300].decode(errors='replace')}") from None
@@ -190,7 +210,7 @@ def call_router_edit(prompt: str, image: Path, mask: Path | None, out_dir: Path)
     if not img_url:
         raise RuntimeError(f"router response has no data[0].url: {json.dumps(payload)[:300]}")
     dl_req = urllib.request.Request(img_url, headers={"User-Agent": "archi-render/1.0 (+curl-compatible)"})
-    with urllib.request.urlopen(dl_req, timeout=120) as r:
+    with urllib.request.urlopen(dl_req, timeout=120, context=SSL_CTX) as r:
         data = r.read()
         ctype_resp = r.headers.get("Content-Type", item.get("mime_type", ""))
     ext = ".png" if "png" in (item.get("mime_type") or ctype_resp or "") else ".jpg"
@@ -341,5 +361,19 @@ def main(argv=None) -> int:
     return 0
 
 
+NO_BACKEND_HINT = (
+    "이 PC에는 렌더 백엔드(pumasi 이미지 스크립트 또는 tikeytaka 라우터 키)가 없습니다.\n"
+    "1회차에는 렌더를 강사 화면에서만 합니다. 흐름만 확인하려면 같은 명령에 --dry-run 을 붙이거나\n"
+    "python3 webtool/server.py --stub 으로 웹툴을 띄우세요."
+)
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except RuntimeError as e:
+        msg = str(e)
+        if "not found" in msg or "cannot read" in msg:
+            print(f"[렌더 불가] {NO_BACKEND_HINT}\n(원인: {msg})", file=sys.stderr)
+            sys.exit(3)
+        raise

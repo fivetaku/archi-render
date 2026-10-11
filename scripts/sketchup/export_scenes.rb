@@ -52,6 +52,12 @@ module ArchiRenderExport
       return
     end
 
+    # 씬 전환 애니메이션이 켜져 있으면 selected_page= 직후 카메라가 아직 이동 중이라
+    # 모든 씬이 같은 화면으로 저장된다 (2026-10-11 SketchUp 2026.2 실측). 내보내는 동안만 끈다.
+    page_opts = model.options['PageOptions']
+    prev_transition = (page_opts['ShowTransition'] rescue nil)
+    begin; page_opts['ShowTransition'] = false; rescue StandardError; end
+
     aspect = view.vpwidth.to_f / view.vpheight.to_f
     height = (WIDTH / aspect).round
     ok = 0
@@ -61,6 +67,7 @@ module ArchiRenderExport
       begin
         FileUtils.mkdir_p(dir)
         pages.selected_page = page          # applies camera, style, shadows of that scene
+        view.camera = page.camera if page.use_camera?   # 전환 효과가 남아 있어도 카메라를 즉시 맞춘다
         view.refresh
         png = File.join(dir, 'capture.png')
         view.write_image(filename: png, width: WIDTH, height: height, antialias: true, transparent: false)
@@ -75,6 +82,7 @@ module ArchiRenderExport
         puts "[archi-render] FAILED #{scene}: #{e.class}: #{e.message}"
       end
     end
+    begin; page_opts['ShowTransition'] = prev_transition unless prev_transition.nil?; rescue StandardError; end
     puts "[archi-render] done: #{ok}/#{pages.count} scenes → #{File.join(OUT_ROOT, model_name)}"
   end
 end

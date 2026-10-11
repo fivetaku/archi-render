@@ -1,5 +1,15 @@
 # archi-render — Archi Render Director
 
+## 수강생 빠른 시작 (Codex)
+
+1. Codex 앱에서 이 폴더를 엽니다.
+2. 첫 질문: "이 폴더는 뭐 하는 곳이야?"
+3. 내 캡처 넣기: `$development-intake 내프로젝트 ~/Downloads/캡처폴더` (또는 "이 폴더 인입해 줘")
+4. 스타일 둘러보기: `$development-stylepack list` (또는 "스타일팩 뭐 있어?")
+5. 렌더는 1회차에 강사 화면에서 봅니다. 각자 PC 렌더는 설정을 마친 뒤 2회차부터 합니다.
+
+아래 빠른 시작은 강사 PC(렌더 백엔드 설치) 기준입니다. `/intake` 같은 슬래시 표기는 Claude Code 문법이고, Codex에서는 `$development-intake`처럼 씁니다.
+
 > SketchUp 클레이 캡처 → 스타일팩 AI 렌더 → 마스크 영역 수정 → 기하 QA 경보 → 리비전 승인 → 납품. 비용 0 백엔드(gpt-image via pumasi, grok via insane-router)만 쓴다.
 
 이 워크스페이스는 Workspace_Builder가 `Development Agent` 아키타입(structure.json v2.0.0, dual runtime, guard hook, wrap, 70-private 격리, scripts-layer)으로 생성한 뒤 렌더 디렉터로 커스텀했습니다.

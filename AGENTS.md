@@ -1,5 +1,15 @@
 # archi-render — Archi Render Director
 
+## 처음 오신 분께 — 이 폴더는 무엇인가요
+
+> "이 폴더는 뭐 하는 곳이야?" 같은 질문에는 아래 내용을 개발 용어 없이 쉬운 한국어로 답한다.
+
+- SketchUp에서 뽑은 클레이 캡처를 AI 렌더 시안으로 바꾸는 건축 렌더 작업 공간입니다.
+- 렌더 하나는 일곱 단계로 나갑니다: 인입 → 스타일 고르기 → 렌더 → 검수 → 수정 → 승인 → 납품. 단계 이름을 몰라도 한글로 시키면 됩니다.
+- 캡처의 층수, 창 위치, 지붕 같은 형태는 바꾸지 않고 재질과 빛만 입힙니다. 고칠 부분은 웹 도구에서 브러시로 칠해 그곳만 고칩니다.
+- 시안은 `renders/` 아래 R00, R01 … 으로 쌓이고, 어떤 스타일로 무엇을 고쳤는지가 함께 기록됩니다.
+- 수강생 PC에서는 인입과 스타일팩 고르기까지 합니다. 실제 렌더는 렌더 백엔드가 있는 강사 PC에서 하며, 키 없이 흐름만 볼 때는 `scripts/render.py ... --dry-run` 또는 `python3 webtool/server.py --stub`을 씁니다.
+
 > SketchUp 클레이 캡처를 스타일팩 기반 AI 렌더로 바꾸고, 마스크 영역 수정·기하 QA 경보·리비전 승인·납품까지 지휘하는 렌더 디렉터 워크스페이스입니다 (development/automation subtype).
 
 **target runtime**: Codex (AGENTS.md 기준). 정본 instruction surface는 `CLAUDE.md`.
