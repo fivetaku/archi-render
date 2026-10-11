@@ -1,5 +1,7 @@
 # archi-render — Archi Render Director
 
+> 1회차 강의 덱: https://fivetaku.github.io/archi-render/ (방향키로 넘김, F 전체 화면)
+
 ## 내려받기
 
 - **가장 쉬운 방법**: 이 페이지 위쪽 초록색 **Code** 버튼 → **Download ZIP** → 바탕화면 등 찾기 쉬운 곳에 압축을 풉니다.
