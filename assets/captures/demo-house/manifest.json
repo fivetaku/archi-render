@@ -1,0 +1,93 @@
+{
+  "project": "demo-house",
+  "intake_at": "2026-10-11T10:12:08+09:00",
+  "source": "SketchUp 2026.2 데모 모델(archi-demo-house.skp), export_scenes.rb",
+  "shots": [
+    {
+      "shot": "S01_entrance",
+      "capture": "S01_entrance/capture.png",
+      "size": [
+        2000,
+        1125
+      ],
+      "aspect": "16:9",
+      "sha256": "25e1e2e333a7284804adf18c8081025153a0e53f9064e55eec94cdc975e8f1a1",
+      "camera": {
+        "eye": [
+          -0.3543307086614173,
+          -0.7874015748031495,
+          0.06299212598425197
+        ],
+        "target": [
+          0.23622047244094488,
+          0.11811023622047244,
+          0.12598425196850394
+        ],
+        "up": [
+          -0.03177634051692679,
+          -0.04872372212595442,
+          0.9983066979067833
+        ],
+        "perspective": true,
+        "fov_deg": 40.0,
+        "height_in": null,
+        "aspect": 1.7777777777777777,
+        "units": "inches",
+        "scene": "S01_entrance",
+        "model": "archi-demo-house",
+        "width": 2000,
+        "height": 1125
+      },
+      "checks": {
+        "resolution": "pass",
+        "style": "pass",
+        "scene_name": "pass",
+        "background": "pass"
+      },
+      "mean_saturation": 0.0
+    },
+    {
+      "shot": "S02_corner",
+      "capture": "S02_corner/capture.png",
+      "size": [
+        2000,
+        1125
+      ],
+      "aspect": "16:9",
+      "sha256": "2fe6ce5017ce751e5e294af2bcab25de9d500dfc264bca4befcc044b1fb803ed",
+      "camera": {
+        "eye": [
+          0.9448818897637795,
+          -0.5118110236220472,
+          0.06299212598425197
+        ],
+        "target": [
+          0.15748031496062992,
+          0.15748031496062992,
+          0.12598425196850394
+        ],
+        "up": [
+          0.04635807935357197,
+          -0.039404367450536174,
+          0.9981473960815964
+        ],
+        "perspective": true,
+        "fov_deg": 40.0,
+        "height_in": null,
+        "aspect": 1.7777777777777777,
+        "units": "inches",
+        "scene": "S02_corner",
+        "model": "archi-demo-house",
+        "width": 2000,
+        "height": 1125
+      },
+      "checks": {
+        "resolution": "pass",
+        "style": "pass",
+        "scene_name": "pass",
+        "background": "pass"
+      },
+      "mean_saturation": 0.0
+    }
+  ]
+}
