@@ -488,13 +488,17 @@ def api_pack_save(_q, body):
     name = (body.get("name") or pid).strip()
     options = body.get("options") or {}
     base = p("assets", "stylepacks")
-    template = {}
-    for existing in sorted(os.listdir(base)) if os.path.isdir(base) else []:
-        cand = read_json(os.path.join(base, existing, "pack.json"))
-        if cand and not existing.startswith("custom-"):
-            template = cand
-            break
+    # 화면에서 고른 팩을 바탕으로 저장한다. 예전에는 알파벳 첫 팩(aerial-drone)을 늘 바탕으로 써서
+    # 눈높이 샷을 저장해도 드론 조감 프롬프트가 되던 버그가 있었다 (2026-10-11).
+    base_id = body.get("base") or "overcast-photoreal"
+    template = read_json(os.path.join(base, safe_id(base_id, "base"), "pack.json")) or {}
+    if not template:
+        raise ApiError(400, f"바탕 팩을 찾을 수 없습니다: {base_id}")
     full_id = pid if pid.startswith("custom-") else f"custom-{pid}"
+    if full_id == template.get("id") and not full_id.startswith("custom-"):
+        raise ApiError(400, "기본 팩과 같은 이름으로는 저장할 수 없습니다")
+    if os.path.exists(os.path.join(base, full_id, "pack.json")) and not body.get("overwrite"):
+        raise ApiError(409, f"이미 있는 팩입니다: {full_id}", exists=True)
     def as_list(v, sep=","):
         return v if isinstance(v, list) else [x.strip() for x in str(v).split(sep) if x.strip()]
 
@@ -508,7 +512,7 @@ def api_pack_save(_q, body):
     pack = {"id": full_id, "version": "1.0.0", "name": name,
             "mood": options.get("mood") or template.get("mood") or "photoreal", "slots": slots, **inherited,
             "keep_fixed": as_list(options.get("keep_fixed") or [], ";"),
-            "samples": [], "source_template": template.get("id"),
+            "samples": [], "source_template": template.get("source_template") or template.get("id"),
             "changelog": [{"date": date.today().isoformat(), "note": "saved from webtool"}]}
     d = os.path.join(base, full_id)
     os.makedirs(d, exist_ok=True)

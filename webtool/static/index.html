@@ -55,15 +55,15 @@
       <details class="sec" data-sec="fixed" open>
         <summary>고정</summary>
         <div class="sec-body">
-          <label class="block">고정 유지 (keep_fixed)
+          <label class="block">꼭 그대로 둘 것 <span class="muted small">(한 줄에 하나)</span>
             <textarea id="keep_fixed" rows="3" placeholder="예) 건물 매스와 창 분할은 그대로&#10;전면 도로 폭 유지"></textarea>
           </label>
           <div class="row">
             <label>비율 <select id="aspect"></select></label>
             <fieldset class="radio-group">
               <legend>백엔드</legend>
-              <label><input type="radio" name="backend" value="gpt" checked> gpt</label>
-              <label><input type="radio" name="backend" value="grok"> grok</label>
+              <label title="Codex 이미지(gpt-image), 비율 그대로"><input type="radio" name="backend" value="gpt" checked> 기본 (gpt)</label>
+              <label title="빠르지만 결과가 4:3으로 고정돼 16:9는 좌우가 잘림"><input type="radio" name="backend" value="grok"> 빠름·4:3 고정 (grok)</label>
             </fieldset>
           </div>
         </div>
@@ -119,8 +119,8 @@
       <h2>Fix — 영역 수정 <span class="muted small">(마스크: 흰색 255 = 수정 영역, 원본 해상도로 저장)</span></h2>
       <div class="toolbar">
         <button data-tool="brush" class="tool active" title="브러시 (B)">브러시</button>
-        <button data-tool="eraser" class="tool" title="지우개 (E)">지우개</button>
         <button data-tool="rect" class="tool" title="사각 선택">사각</button>
+        <button data-tool="eraser" class="tool" title="지우개 (E)">지우개</button>
         <label class="inline">크기 <input id="brush-size" type="range" min="4" max="200" value="40"> <span id="brush-size-val">40</span></label>
         <button id="btn-undo" class="ghost" title="되돌리기 (Z)">되돌리기</button>
         <button id="btn-clear" class="ghost">모두 지우기</button>

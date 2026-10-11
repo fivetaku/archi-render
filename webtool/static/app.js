@@ -5,9 +5,30 @@
    At boot the UI loads the live schema from GET /api/options (= prompt_compose.py --list-options) and
    rebuilds selects from its `values`/`options`; this constant is only used when that call fails.
    Keep in sync with 20-knowledge/stylepacks/OPTIONS.md. */
-const GROUP_LABELS = { shot: "샷·카메라", materials: "재질", lighting: "조명", season: "계절·식생", entourage: "엔투라지 상세", context: "컨텍스트", grading: "그레이딩", other: "무드" };
-const KEY_LABELS = { mood: "무드", lighting: "조명", sky: "하늘", interior_lights: "실내등", season_weather: "계절·날씨", vegetation_age: "식생 성숙도", camera: "카메라", tilt: "틸트", materials: "재질 프리셋", people_density: "인물 밀도", people_activity: "인물 동작", car_density: "차량 밀도", car_type: "차량 종류", context: "주변 맥락", material_wear: "재질 마모", tone: "톤", post: "후보정", lens_mm: "렌즈 mm", camera_height_m: "카메라 높이 m" };
+const GROUP_LABELS = { shot: "샷·카메라", materials: "재질", lighting: "조명", season: "계절·식생", entourage: "사람·차 상세", context: "컨텍스트", grading: "색감", other: "표현 방식" };
+const KEY_LABELS = { mood: "표현 방식", lighting: "조명", sky: "하늘", interior_lights: "실내등", season_weather: "계절·날씨", vegetation_age: "식생 성숙도", camera: "카메라", tilt: "카메라 기울기", materials: "재질 프리셋", people_density: "인물 밀도", people_activity: "인물 동작", car_density: "차량 밀도", car_type: "차량 종류", context: "주변 맥락", material_wear: "재질 마모", tone: "사진 용도", post: "색감 보정", lens_mm: "렌즈 mm", camera_height_m: "카메라 높이 m" };
 const TOGGLE_LABELS = { people: "사람", cars: "차량", vegetation: "식재", furniture: "가구" };
+// 옵션 값 한글 표시 (2026-10-11 — 영어 값만 보이던 문제). 값 자체(프롬프트 어휘)는 바꾸지 않는다.
+const VALUE_LABELS = {
+  mood: { photoreal: "사진처럼", cinematic: "영화 장면처럼", clay: "흰 모형(클레이)", watercolor: "수채화", diagram: "다이어그램", painterly: "회화풍", collage: "콜라주" },
+  lighting: { overcast: "흐린 날", midday: "한낮", golden_hour: "해 질 녘 골든아워", dusk: "해 진 직후", night: "밤", blue_hour: "블루아워(푸른 저녁)", dawn: "새벽", morning_side: "아침 옆빛", afternoon_backlit: "오후 역광", night_signs_only: "밤 — 간판만 켜짐", night_full: "밤 — 전체 점등" },
+  sky: { clear: "맑음", scattered_cumulus: "뭉게구름 조금", overcast: "잔뜩 흐림", dramatic: "극적인 구름", haze: "뿌연 하늘" },
+  interior_lights: { off: "꺼짐", partial: "일부 켜짐", all_on: "모두 켜짐" },
+  season_weather: { spring: "봄", summer: "여름", autumn: "가을", winter: "겨울", rain: "비", snow: "눈", early_spring_blossom: "이른 봄 꽃", monsoon_rain: "장마", late_autumn: "늦가을", heavy_snow: "폭설", haze: "연무", fog: "안개" },
+  vegetation_age: { young: "어린 나무", mature: "다 자란 나무", lush: "울창함" },
+  camera: { eye_level: "사람 눈높이", elevated: "약간 높은 시점", drone: "드론 조감", interior: "실내" },
+  tilt: { level: "수평", slight_up: "살짝 올려 봄", slight_down: "살짝 내려 봄" },
+  materials: { white_stucco_oak: "흰 스타코 + 오크 목재", board_formed_concrete: "송판 노출콘크리트", brick_dark_metal: "벽돌 + 짙은 금속", timber_glass: "목재 + 유리", clay_massing: "흰 매스(재질 없음)" },
+  people_density: { none: "없음", sparse: "드문드문", moderate: "보통", busy: "붐빔" },
+  people_activity: { walking: "걷는 사람", standing_talking: "서서 대화", seated: "앉아 있음", mixed: "섞어서" },
+  car_density: { none: "없음", few: "몇 대", full: "많이" },
+  car_type: { passenger: "승용차", mixed_commercial: "승용·상용 섞어서", bicycles_only: "자전거만" },
+  context: { as_drawn: "캡처 그대로", urban_dense: "빽빽한 도심", suburban: "교외 주택가", rural: "시골", waterfront: "물가", forest: "숲" },
+  material_wear: { new: "새 건물", lived_in: "사용감 약간", weathered: "오래된 느낌" },
+  tone: { editorial_magazine: "건축 잡지", real_estate_ad: "분양 광고", competition_panel: "현상설계 패널", documentary: "다큐 사진" },
+  post: { neutral: "보정 없음", teal_orange: "청록·주황 대비", warm_film: "따뜻한 필름", bw: "흑백" },
+};
+const valueLabel = (key, v) => { const k = (VALUE_LABELS[key] || {})[v]; return k ? `${k} (${v})` : v; };
 /* collapsible sections: merged_into group → section id; fixed section (keep_fixed/aspect) lives in index.html */
 const SECTION_OF = { other: "look", grading: "look", lighting: "light", season: "season", entourage: "people", shot: "camera", context: "context", materials: "context" };
 const SECTION_LABELS = { look: "룩", light: "빛·하늘", season: "계절·식생", people: "사람·차", camera: "카메라", context: "맥락·재질", fixed: "고정" };
@@ -172,12 +193,12 @@ function buildOptions(schema) {
     else {
       const sent = (schema.sentences || {})[s.key] || {};
       ctl = document.createElement("select");
-      ctl.innerHTML = `<option value="">(팩 기본값)</option>` + s.values.map((v) => `<option value="${esc(v)}"${sent[v] ? ` title="${esc(sent[v])}"` : ""}>${esc(v)}</option>`).join("");
+      ctl.innerHTML = `<option value="">(팩 기본값)</option>` + s.values.map((v) => `<option value="${esc(v)}"${sent[v] ? ` title="${esc(sent[v])}"` : ""}>${esc(valueLabel(s.key, v))}</option>`).join("");
     }
     ctl.id = "opt-" + s.key; l.appendChild(ctl); body.appendChild(l);
   }
   const tgBody = section("people");
-  const gt = document.createElement("div"); gt.className = "group-title"; gt.textContent = "엔투라지 토글"; tgBody.appendChild(gt);
+  const gt = document.createElement("div"); gt.className = "group-title"; gt.textContent = "넣을 것 (사람·차·나무·가구)"; tgBody.appendChild(gt);
   const tg = document.createElement("div"); tg.className = "toggles";
   for (const t of schema.toggles) {
     const l = document.createElement("label"), cb = document.createElement("input"); cb.type = "checkbox"; cb.id = "opt-" + t.key;
@@ -461,19 +482,24 @@ async function doFix() {
 
 /* ─────────────────────────── save as pack */
 async function savePack() {
-  const id = prompt("팩 ID (영문·숫자·-·_ · 'custom-' 접두는 자동)");
-  if (!id) return;
-  if (!/^[A-Za-z0-9_-]{1,40}$/.test(id)) return toast("ID 형식이 올바르지 않습니다", true);
-  const name = prompt("팩 표시 이름", id) || id;
+  const name = prompt("새 팩 이름 (한글 가능, 예: 우리 사무소 가을 저녁)");
+  if (!name || !name.trim()) return;
+  const ascii = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 32);
+  const d = new Date(), pad = (n) => String(n).padStart(2, "0");
+  const id = ascii.length >= 3 ? ascii : `pack-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+  const cur = (S.packs || []).find((pk) => pk.id === S.pack);
+  const sameAsCurrent = cur && cur.id.startsWith("custom-") && (cur.name || "") === name.trim();
+  const body = { id: sameAsCurrent ? cur.id : id, name: name.trim(), base: S.pack, options: collectOptions() };
   try {
-    const r = await api("/api/pack/save", { id, name, options: collectOptions() });
-    toast(`저장됨: ${r.path}`); await loadPacks(); selectPack(r.id);
+    let r;
+    try { r = await api("/api/pack/save", body); }
+    catch (e) {
+      if (!/이미 있는 팩/.test(errText(e)) || !confirm(`같은 이름의 팩이 있습니다. 덮어쓸까요?`)) throw e;
+      r = await api("/api/pack/save", { ...body, overwrite: true });
+    }
+    toast(`저장됨: ${name.trim()} (${r.path}, 바탕: ${S.pack || "overcast-photoreal"})`); await loadPacks(); selectPack(r.id);
   } catch (e) { toast("팩 저장 실패: " + errText(e), true); }
 }
-
-/* ─────────────────────────── boot */
-bindDropzone(); bindCompare(); bindCanvas();
-els.render.addEventListener("click", doRender);
 els.savePack.addEventListener("click", savePack);
 els.options.addEventListener("change", composePreview); els.options.addEventListener("input", debounce(composePreview, 300));
 els.keepFixed.addEventListener("input", composePreview);
