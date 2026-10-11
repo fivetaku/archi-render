@@ -57,3 +57,9 @@ renders/*
 !renders/README.md
 __pycache__/
 *.pyc
+
+# 외부 참고 이미지(타인 저작물) — 레포에 올리지 않음. 출처는 각 폴더 SOURCES.md / FINDINGS.md
+20-knowledge/references/*/drawings/*.jpg
+20-knowledge/references/*/drawings/*.png
+20-knowledge/references/*/reference/
+20-knowledge/references/*/aside.log
