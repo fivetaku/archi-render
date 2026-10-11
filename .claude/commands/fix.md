@@ -27,6 +27,8 @@ Standard. 기준 리비전(Rnn) 위에 마스크 영역만 재생성해 새 리�
 
 - `--instruction`은 **무엇을 무엇으로**만 쓴다. 예: "Replace only the ground-floor windows with arched wooden-frame windows. Keep everything else unchanged."
 - 팩의 재질 어휘(`OPTIONS.md`)를 재사용한다. "예쁘게" 같은 비특정 표현은 구체 재질·색으로 바꿔 묻는다.
+- 지시가 모호하면 번호로 묻는다(AGENTS.md "질문 방식"): 1 재질 바꾸기 · 2 창·문 모양 · 3 색 · 4 나무·사람·차 넣거나 빼기 · 5 하늘·시간대 · 6 직접 말하기. 고른 뒤 구체 값(예: 재질 후보 3개)을 한 번 더 번호로 보여 준다.
+- 말로 위치를 짚기 어려우면 웹툴 브러시로 칠하게 하거나, 렌더에 동그라미를 그려 첨부하게 한다(첨부 그림 방식은 `$development-image`의 "표시한 그림으로 고치기").
 
 ### Step 3: 실행
 

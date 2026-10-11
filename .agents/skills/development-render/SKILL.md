@@ -25,7 +25,7 @@ $development-render <project> <shot|all> --pack <id> [--option k=v ...] [--backe
 ### Step 1: 입력 확인
 
 - `assets/captures/<project>/manifest.json`이 없으면 `$development-intake`로 보낸다.
-- `--pack`이 없으면 `$development-stylepack list`를 짧게 보여주고 하나를 고르게 한다. 존재하지 않는 팩 id면 중단.
+- `--pack`이 없으면 분위기를 번호 선택지로 묻는다(AGENTS.md "질문 방식" 예시: 1 흐린 날·추천 / 2 골든아워 / 3 저녁 시네마틱 / 4 한낮 콘크리트 / 5 항공 조감 / 6 직접 말하기, 샘플 그림 경로 함께). 존재하지 않는 팩 id면 중단.
 - manifest에 해상도 WARN이 있는 샷은 "진행하되 저해상 캡처는 렌더 디테일이 떨어질 수 있다"고 한 줄 알린다. 차단하지 않는다.
 
 ### Step 2: 프롬프트 조립 (미리보기)
