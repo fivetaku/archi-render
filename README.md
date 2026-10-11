@@ -1,12 +1,20 @@
 # archi-render — Archi Render Director
 
+## 내려받기
+
+- **가장 쉬운 방법**: 이 페이지 위쪽 초록색 **Code** 버튼 → **Download ZIP** → 바탕화면 등 찾기 쉬운 곳에 압축을 풉니다.
+- git을 쓸 줄 알면: `git clone https://github.com/fivetaku/archi-render.git`
+- 맥은 터미널에서 한 번: `python3 -m pip install --user pillow` (이미지 처리 도구)
+
 ## 수강생 빠른 시작 (Codex)
 
-1. Codex 앱에서 이 폴더를 엽니다.
+1. ChatGPT 데스크톱 앱을 열고 위쪽에서 **Codex**를 고른 뒤, 내려받은 `archi-render` 폴더를 프로젝트로 엽니다.
 2. 첫 질문: "이 폴더는 뭐 하는 곳이야?"
-3. 내 캡처 넣기: `$development-intake 내프로젝트 ~/Downloads/캡처폴더` (또는 "이 폴더 인입해 줘")
-4. 스타일 둘러보기: `$development-stylepack list` (또는 "스타일팩 뭐 있어?")
-5. 렌더는 1회차에 강사 화면에서 봅니다. 각자 PC 렌더는 설정을 마친 뒤 2회차부터 합니다.
+3. 예시로 렌더해 보기: "demo-house S02_corner 캡처 렌더해줘" → 분위기를 번호로 물어보면 숫자로 답합니다(`$development-image`).
+4. 내 캡처 넣기: `$development-intake 내프로젝트 ~/Downloads/캡처폴더` (또는 "이 폴더 인입해 줘")
+5. 스타일 둘러보기: `$development-stylepack list` (또는 "스타일팩 뭐 있어?")
+
+칠한 곳만 고치는 마스크 수정(웹툴 Fix)은 렌더 키가 있는 강사 PC에서 합니다. `.codex/` 폴더는 강사 PC 설정(모델 고정·안전 훅)이라 수강생 PC에서 문제가 되면 지워도 됩니다.
 
 아래 빠른 시작은 강사 PC(렌더 백엔드 설치) 기준입니다. `/intake` 같은 슬래시 표기는 Claude Code 문법이고, Codex에서는 `$development-intake`처럼 씁니다.
 
