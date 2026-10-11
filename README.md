@@ -14,9 +14,9 @@
 
 이 워크스페이스는 Workspace_Builder가 `Development Agent` 아키타입(structure.json v2.0.0, dual runtime, guard hook, wrap, 70-private 격리, scripts-layer)으로 생성한 뒤 렌더 디렉터로 커스텀했습니다.
 
-## 빠른 시작
+## 강사 빠른 시작 (Claude Code 또는 Codex, 렌더 키가 있는 PC)
 
-1. **SketchUp(사용자 PC)** — `scripts/sketchup/export_scenes.rb`를 실행해 씬별 `capture.png`(클레이, 그림자 On, 긴 변 ≥2000px)를 덤프한다. 규약: `20-knowledge/capture-protocol.md`.
+1. **SketchUp (맥·윈도우)** — `scripts/sketchup/export_scenes.rb`를 실행해 씬별 `capture.png`(클레이, 그림자 On, 긴 변 ≥2000px)를 덤프한다. 규약: `20-knowledge/capture-protocol.md`.
 2. **인입** — 폴더를 이 맥으로 옮기고 워크스페이스에서:
    ```bash
    claude          # 또는 codex
@@ -27,7 +27,7 @@
 4. **점검·수정** — `> /qa P01 all` (경보는 참고, 판정은 사람) → 문제 영역은 웹툴에서 마스크 → `> /fix P01 S01 --base R00 --mask ... --instruction "..."`.
 5. **승인·납품** — `> /approve P01 S01 R01 internal` … `approval` → `> /deliver P01` → `50-output/P01/`.
 
-라우터 키가 없으면 `insane-router-connect` 스킬로 `insane-router-key-archi-render`를 발급·매핑한다. OpenAI/Google 원본 키는 쓰지 않는다.
+마스크 수정(grok)은 라우터 키가 필요하다. render.py 기본 키는 `insane-router-key-aside`이며, 전용 키를 `insane-router-connect` 스킬로 발급하면 `ARCHI_RENDER_ROUTER_KEY_SERVICE`로 지정한다. OpenAI/Google 원본 키는 쓰지 않는다.
 
 ## 문서
 

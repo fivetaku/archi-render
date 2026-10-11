@@ -1,4 +1,4 @@
-# export_scenes.rb — SketchUp scene exporter for archi-render (runs on the user's SketchUp PC, not on the Mac).
+# export_scenes.rb — SketchUp scene exporter for archi-render (macOS·Windows SketchUp 2025/2026).
 #
 # For every scene (model.pages) it writes a 2000px-wide PNG (height keeps the viewport aspect)
 # plus camera.json, into  ~/Desktop/archi-render-export/<model-name>/<scene-name>/
@@ -10,6 +10,9 @@
 # HOW TO RUN
 #   A) Ruby Console: Window ▸ Ruby Console ▸  load "C:/path/to/export_scenes.rb"
 #   B) Startup:      sketchup.exe -RubyStartup "C:/path/to/export_scenes.rb"  (opens the model, then exports)
+#      macOS:        open -a "/Applications/SketchUp 2026/SketchUp.app" --args -RubyStartup /path/to/export_scenes.rb
+#   Aspect: the PNG keeps the VIEWPORT aspect. Resize the SketchUp window to the delivery ratio
+#   (16:9 / 4:3 …) first — a full-screen ultrawide window gives e.g. 2000x479.
 #   C) Plugins dir:  drop into Plugins/ and it exports at every launch — not recommended.
 # Options: change WIDTH / OUT_ROOT below. Scene names are sanitised for filesystem use.
 # SketchUp 2025/2026 tested API surface only: Sketchup.active_model, Model#pages, Pages#selected_page=,
@@ -59,6 +62,11 @@ module ArchiRenderExport
     begin; page_opts['ShowTransition'] = false; rescue StandardError; end
 
     aspect = view.vpwidth.to_f / view.vpheight.to_f
+    std = { '16:9' => 16 / 9.0, '4:3' => 4 / 3.0, '3:2' => 1.5, '1:1' => 1.0 }
+    near = std.min_by { |_, v| (v - aspect).abs }
+    if (near[1] - aspect).abs > 0.05
+      puts "[archi-render] WARNING viewport aspect #{aspect.round(2)} is not a delivery ratio (nearest #{near[0]}). Resize the SketchUp window first."
+    end
     height = (WIDTH / aspect).round
     ok = 0
     pages.each do |page|

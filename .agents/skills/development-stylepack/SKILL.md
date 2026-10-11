@@ -43,7 +43,7 @@ $development-stylepack edit <id> <field>=<value> ...
 
 ### Step 3: 샘플 생성 (`--sample` 또는 "샘플 뽑아봐")
 
-- `pumasi:image`로 팩 프롬프트(`prompt_compose.py --pack custom-<slug> --print`) 기반 무드 샘플 1장을 생성해 `assets/stylepacks/custom-<slug>/samples/s01.png`에 저장한다. 실제 캡처가 있으면 샘플 대신 `$development-render` 1샷을 권한다(샘플은 무드 확인용, 기하 검증 아님).
+- `pumasi:image`(Claude Code) 또는 `$development-image` 일반 그림 모드(Codex)로 팩 프롬프트(`prompt_compose.py --pack custom-<slug> --print`) 기반 무드 샘플 1장을 생성해 `assets/stylepacks/custom-<slug>/samples/s01.png`에 저장한다. 실제 캡처가 있으면 샘플 대신 `$development-render` 1샷을 권한다(샘플은 무드 확인용, 기하 검증 아님).
 - `api.openai.com`·Google 키를 직접 호출하지 않는다.
 
 ### Step 4: 편집 (`edit`)
@@ -85,7 +85,7 @@ NOT-trigger:
 - "이 팩으로 렌더 돌려줘" → `$development-render`
 - "창문만 바꿔줘" → `$development-fix`
 - "옵션 어휘가 뭐 있어?" → `20-knowledge/stylepacks/OPTIONS.md` 안내
-- "이미지 만들어줘"(팩 샘플이 아닌 일반 이미지) → pumasi:image 직접
+- "이미지 만들어줘"(팩 샘플이 아닌 일반 이미지) → Claude Code는 pumasi:image, Codex는 `$development-image`
 
 ## 참조
 

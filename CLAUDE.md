@@ -21,7 +21,7 @@ Workspace_Builder는 이 워크스페이스를 생성하는 도구이고,
 ✅ 허용:
 - SketchUp 캡처 폴더 인입과 캡처 규약 점검 (/intake)
 - 스타일팩 조회·선택·custom-<slug> 합성, pumasi:image로 팩 샘플 생성 (/stylepack)
-- 0원 백엔드로 전체 샷 렌더 — gpt-image(pumasi --ref) 기본, grok(insane-router) 폴백 (/render)
+- 0원 백엔드로 전체 샷 렌더 — gpt-image(pumasi --ref, 수강생 Codex 앱은 내장 이미지 도구 `$development-image`) — grok은 지명할 때만 (/render)
 - grok 마스크 인페인팅으로 영역 수정 (/fix)
 - 캡처 대비 기하 경보와 사람 판정 체크리스트 (/qa, advisory)
 - 리비전 R태그와 clay→internal→client→approval 승인 기록 (/approve)
@@ -82,7 +82,7 @@ archi-render/
 │   ├── qa_geometry.py                # 엣지 IoU/SSIM 참고치 (advisory)
 │   ├── contact_sheet.py              # 50-output/<P>/contact_sheet_<date>.jpg
 │   ├── revision.py                   # R태그·승인 단계
-│   └── sketchup/export_scenes.rb     # 사용자 PC용 SketchUp 씬 export
+│   └── sketchup/export_scenes.rb     # SketchUp 씬 export (맥·윈도우, 씬 전환 꺼서 내보냄)
 │
 ├── 10-planning/                      # 프로젝트 브리프·샷 리스트·curriculum.md (4주 동선)·spec·ADR
 ├── 20-knowledge/
@@ -93,7 +93,7 @@ archi-render/
 │   ├── research/                     # 01_full_report.md · 02_workspace_design_inputs.md
 │   ├── trials/                       # 백엔드 비교·API 실측 기록
 │   └── frameworks/                   # owasp-top10 · rag-chunking · subtype-eval-harness
-├── 30-docs/                          # scripts-layer.md · SketchUp export 절차 · 웹툴 사용법
+├── 30-docs/                          # scripts-layer.md · 웹툴 사용법 (SketchUp 절차는 capture-protocol.md)
 ├── 40-reports/                       # qa/ · cost/ · test-results · review
 ├── 50-output/<project>/              # 납품 컨택트시트·final/·manifest.json
 ├── 70-private/<project>/             # 클라이언트 도면·계약 원본 — fail-closed, meta.md만 추적
@@ -109,13 +109,13 @@ archi-render/
 대표 흐름 (렌더 프로젝트 1건):
 
 ```text
-[사용자 PC] SketchUp → scripts/sketchup/export_scenes.rb → 캡처 폴더
+[SketchUp 맥·윈도우] SketchUp → scripts/sketchup/export_scenes.rb → 캡처 폴더
     ↓ (폴더 인입)
 /intake <P>            캡처 규약 점검 · manifest.json · 샷 목록
     ↓
 /stylepack list|new    팩 선택 또는 custom-<slug> 합성 (Specificity Gate)
     ↓
-/render <P> <S|all> --pack <id>     gpt 기본 · grok 폴백 → renders/<P>/<S>/R00
+/render <P> <S|all> --pack <id>     gpt 기본 (grok은 지명 시만) → renders/<P>/<S>/R00
     ↓
 /qa <P> <S|all>        IoU/SSIM 경보 + 사람 판정 체크리스트 (advisory)
     ↓ 문제 영역           ↓ 통과
@@ -143,7 +143,7 @@ archi-render/
 
 - `/intake <project> [<folder>]` — Standard. 캡처 폴더 인입, 규약 C1~C8 점검(≥2000px는 경고, 차단 아님), manifest.json 생성. 산출물: `assets/captures/<P>/manifest.json`
 - `/stylepack list|show|new|edit` — Standard. 5 기본팩 조회·추천, `custom-<slug>` 합성(분석 → 가까운 base → 전체 스키마 → Specificity Gate), pumasi:image 샘플. 산출물: `assets/stylepacks/<id>/pack.yaml`
-- `/render <P> <S|all> --pack <id> [--option k=v] [--backend gpt|grok] [--aspect W:H]` — Lite. 전체 샷 렌더, 기본 gpt, 폴백 grok, 임시 URL 즉시 다운로드. 산출물: `renders/<P>/<S>/Rnn/{render.*, prompt.txt, meta.json}`
+- `/render <P> <S|all> --pack <id> [--option k=v] [--backend gpt|grok] [--aspect W:H]` — Lite. 전체 샷 렌더, 기본 gpt. gpt 실패 시 grok 자동 폴백 없이 원인 보고(grok은 사용자가 지명할 때만, 출력 1152×864 4:3 고정). 비율은 --aspect > 옵션 > 캡처 비율. 산출물: `renders/<P>/<S>/Rnn/{render.*, prompt.txt, meta.json}`
 - `/fix <P> <S> --base Rnn --mask <png> --instruction "..."` — Standard. grok 마스크 인페인팅(알파 0 = 편집)으로 영역만 재생성. gpt 요청 시 마스크 없음 설명 + keep_fixed 재렌더 제안. 산출물: `renders/<P>/<S>/R(nn+1)/`
 - `/qa <P> <S|all> [--threshold 0.35]` — Standard. 엣지 IoU/SSIM 참고치 + 사람 판정 체크리스트. **advisory only**. 산출물: `40-reports/qa/`
 - `/approve <P> <S> Rnn <clay|internal|client|approval>` · `/approve <P> list` — Lite. 승인 단계 기록·조회. 산출물: meta.json `approvals[]`
@@ -181,7 +181,7 @@ should-trigger:
 
 - "캡처 폴더 들여와줘" / "SketchUp에서 뽑은 거 인입" → `/intake`
 - "어떤 스타일 있어?" / "노을 느낌 팩 만들어줘" → `/stylepack`
-- "렌더 돌려줘" / "전부 골든아워로 다시" / "grok으로 빨리" → `/render`
+- "렌더 돌려줘" / "전부 골든아워로 다시" → `/render` (수강생 Codex 앱: `$development-image`)
 - "1층 창만 아치로" / "이 부분만 고쳐" / "마스크 반영해줘" → `/fix`
 - "지붕 바뀐 거 아냐?" / "창 개수 확인" / "R02랑 R03 비교" → `/qa`
 - "R03 내부 승인" / "클라이언트 보낼 버전으로" / "어디까지 승인됐어?" → `/approve`
@@ -216,7 +216,7 @@ NOT-trigger:
 - **6개 스타일 차원** (`20-knowledge/research/01_full_report.md` §4, clm_010·012·020) — 조명·시간대 / 날씨·계절·식생 / 카메라(렌즈·높이·원근) / 엔투라지 / 후처리 / 렌더 무드. `/stylepack new`의 분석·Specificity Gate와 `OPTIONS.md` 어휘의 축. 슬롯은 6~7개를 넘기지 않는다.
 - **마스크 극성표** (`20-knowledge/backends.md` § 마스크 극성) — grok/OpenAI: RGBA 알파 0 = 편집 (활성). FLUX Fill: 흰색 = 재생성. Stability: `mode=mask|search`. 내부 표준은 8비트 그레이 255 = 편집, 전송 전 팽창 8~16px + 페더 4~8px. `/fix` Step 1에서 호출.
 - **캡처 규약** (`20-knowledge/capture-protocol.md`) — 클레이/모노크롬 + 그림자 On + Scene 잠금 + 긴 변 ≥2000px + 단색 배경 + `<project>/<shot>/capture.png` + camera.json 선택. `/intake` Step 2에서 호출. 근거: SketchUp 뎁스맵 부재(clm_026), 선화 입력의 지붕 드리프트(E2·E4).
-- **백엔드 능력 카드** (`20-knowledge/backends.md`) — gpt(pumasi --ref): img2img·마스크 없음·1~2분·입력 비율 근사. grok(router): img2img + 마스크·12~18초·1024급·임시 URL. 라우터 gpt-image edits 501, Gemini 없음. `/render`·`/fix`의 백엔드 선택에서 호출.
+- **백엔드 능력 카드** (`20-knowledge/backends.md`) — gpt(pumasi --ref): img2img·마스크 없음·1~2분·입력 비율 근사. grok(router): img2img + 마스크·12~18초·출력 1152×864(4:3) 고정·임시 URL. 라우터 gpt-image edits 501, Gemini 없음. `/render`·`/fix`의 백엔드 선택에서 호출.
 - **리비전·승인 모델** (clm_009) — R00/R01 자동 태그, clay → internal → client → approval. `/approve`·`/deliver`에서 호출.
 - **OWASP Top 10 / SOLID / Subtype Eval Harness** — `20-knowledge/frameworks/`, `/design` Step 2 인라인. 스크립트·웹툴 개발 트랙의 `/review`·`/test`에서 호출. 검색이 없으므로 RAG Chunking은 호출하지 않는다.
 
@@ -270,7 +270,7 @@ Lite에서도 캡처 규약·기하 잠금 꼬리·renders/ 격리는 유지합�
 
 - [ ] 판정·필터 스크립트는 `--selftest`를 동봉하고 통과했다.
 - [ ] 외부 입력(캡처 경로·마스크·옵션)은 검증되고 오류 형식이 일관된다. 웹툴은 127.0.0.1에만 바인딩한다.
-- [ ] 설정과 비밀은 코드에 하드코딩되지 않았다(라우터 키는 tikeytaka가 채우는 .env).
+- [ ] 설정과 비밀은 코드에 하드코딩되지 않았다(라우터 키는 강사 PC 전용, tikeytaka CLI로 실행 시 읽음 — 수강생 PC에는 없음).
 - [ ] `/review`에서 OWASP 항목을 확인했고 로그·meta.json에 민감 정보가 없다.
 
 ---
@@ -281,9 +281,9 @@ Lite에서도 캡처 규약·기하 잠금 꼬리·renders/ 격리는 유지합�
 
 | 날짜 | 변경 내용 | 사유 |
 |------|----------|------|
+| 2026-10-11 | 수강생 Codex 대응: `$development-image`(Codex 내장 이미지 렌더) + attach_render.py, 렌더 grok 자동 폴백 제거, 비율 우선순위(캡처 > 팩 힌트), SketchUp export 씬 전환 버그·certifi 수정, demo-house 캡처 | 건축사 Codex 과외 1회차 리허설 실측 |
 | 2026-09-14 | 지식 베이스 시드: research 01·02, trials 2건, backends.md·capture-protocol.md·kb-link.md, 10-planning/curriculum.md | 리서치·트라이얼 결정을 워크스페이스 정본으로 이관 |
 | 2026-09-14 | 렌더 파이프라인 커맨드 7종 추가 (intake·stylepack·render·fix·qa·approve·deliver, Claude+Codex), CLAUDE.md 12섹션을 Archi Render Director로 커스텀 | Custom Path — 02 설계 문서 §5 + 2026-09-14 트라이얼 백엔드 결정 |
-| 2026-09-14 | 워크스페이스 생성 (development v2.0.0) | workspace-builder generator |
 
 ---
 

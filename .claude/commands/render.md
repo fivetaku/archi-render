@@ -4,7 +4,7 @@ description: "샷 전체 렌더 실행, 팩 적용 재렌더, 옵션 바꿔 다�
 
 # /render
 
-Lite. 캡처 + 팩 + 옵션으로 프롬프트를 조립해 `scripts/render.py`로 전체 샷을 렌더하고 새 리비전(Rnn)을 만든다. 기본 백엔드는 **gpt**(pumasi `imagen.sh --ref`), 폴백은 **grok**(insane-router). 비용은 두 경로 모두 0.
+Lite. 캡처 + 팩 + 옵션으로 프롬프트를 조립해 `scripts/render.py`로 전체 샷을 렌더하고 새 리비전(Rnn)을 만든다. 기본 백엔드는 **gpt**(pumasi `imagen.sh --ref`, 구독 — 한계비용 0)이다. grok은 사용자가 이름을 대고 요청할 때만 쓴다 — 출력이 1152×864(4:3)로 고정이라 16:9 캡처는 좌우가 잘린다. **이 PC에 pumasi가 없으면**(수강생 Codex 앱 — render.py가 `[렌더 불가]`로 끝남) `$development-image`의 렌더 모드(Codex 내장 이미지 도구)로 같은 리비전 기록을 남긴다.
 
 ## 사용법
 
@@ -18,7 +18,7 @@ Lite. 캡처 + 팩 + 옵션으로 프롬프트를 조립해 `scripts/render.py`�
 
 - `assets/captures/<project>/manifest.json`이 없으면 `/intake`로 보낸다.
 - `--pack`이 없으면 `/stylepack list`를 짧게 보여주고 하나를 고르게 한다. 존재하지 않는 팩 id면 중단.
-- manifest에 해상도 WARN이 있는 샷은 "진행하되 grok 폴백 시 1024급"이라고 한 줄 알린다. 차단하지 않는다.
+- manifest에 해상도 WARN이 있는 샷은 "진행하되 저해상 캡처는 렌더 디테일이 떨어질 수 있다"고 한 줄 알린다. 차단하지 않는다.
 
 ### Step 2: 프롬프트 조립 (미리보기)
 
@@ -59,8 +59,8 @@ python3 scripts/render.py --input assets/captures/<P>/<S>/capture.png --project 
 ```
 
 - `all`이면 manifest의 샷을 순차 실행한다(gpt는 1~2분/장 — 샷 수×2분을 미리 알린다).
-- `--backend` 규칙: 기본 gpt. 사용자가 속도를 우선하거나 gpt 호출이 실패하면 `--backend grok`으로 재시도하고 meta.json에 폴백 사유를 남긴다.
-- `--aspect`는 manifest의 비율을 기본으로 넘긴다. gpt 출력은 입력 비율을 근사하므로 정확한 픽셀 크기를 약속하지 않는다.
+- `--backend` 규칙: 기본 gpt. gpt 호출이 실패해도 grok으로 자동 재시도하지 않고 실패 원인(REASON 줄)을 보고한다(오너 결정 2026-10-11: 전체 렌더는 Codex/gpt). 사용자가 grok을 지명할 때만 `--backend grok`으로 돌리고, 4:3 고정 출력을 미리 알린다.
+- `--aspect`를 생략하면 render.py가 캡처 비율에 가장 가까운 값을 쓴다(팩의 aspect_hint는 캡처 비율을 덮지 않는다). gpt 출력은 입력 비율을 근사하므로 정확한 픽셀 크기를 약속하지 않는다.
 - grok 결과의 **임시 URL은 스크립트가 즉시 다운로드**한다. `renders/<P>/<S>/Rnn/render.*` 파일이 없으면 성공으로 보고하지 않는다.
 
 ### Step 4: 결과 확인과 기록
@@ -76,8 +76,8 @@ python3 scripts/render.py --input assets/captures/<P>/<S>/capture.png --project 
 
 | 샷 | 리비전 | 백엔드 | 팩 | 소요 | 출력 | usage |
 |---|---|---|---|---|---|---|
-| S01_entrance | R00 | gpt | overcast-photoreal@1.0.0 | 1m42s | renders/P01/S01_entrance/R00/render.png (1448×1086) | n/a (구독) |
-| S02_side | R00 | grok (폴백: gpt timeout) | overcast-photoreal@1.0.0 | 16s | .../R00/render.jpg (1024×768) | cost_in_usd_ticks 700000000 (실과금 0) |
+| S01_entrance | R00 | gpt | overcast-photoreal@1.0.0 | 35s | renders/P01/S01_entrance/R00/render.png (1672×941, 16:9) | n/a (구독) |
+| S02_side | R00 | grok (사용자 지정) | overcast-photoreal@1.0.0 | 16s | .../R00/render.jpg (1152×864, 4:3 고정) | cost_in_usd_ticks 700000000 (실과금 0) |
 
 프롬프트: renders/P01/S01_entrance/R00/prompt.txt
 다음: /qa P01 all → /fix 또는 /approve

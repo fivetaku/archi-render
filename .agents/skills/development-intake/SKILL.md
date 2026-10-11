@@ -35,7 +35,7 @@ $development-intake <project> [<source-folder>]
 
 | 검사 | 판정 |
 |---|---|
-| 긴 변 ≥ 2000px | 미달 → **WARN** (차단 아님). 값과 함께 "저해상은 grok 폴백에서 1024로 업스케일됨"을 안내 |
+| 긴 변 ≥ 2000px | 미달 → **WARN** (차단 아님). 값과 함께 "저해상 캡처는 렌더 디테일이 떨어질 수 있음"을 안내 |
 | 종횡비 | 씬별 비율을 표시. 16:9/4:3/3:2/1:1 밖이면 INFO — `$development-render --aspect W:H`로 전달할 값을 적어 둔다 |
 | 클레이/모노크롬·그림자 On | 색 채도·텍스처 흔적이 높으면 WARN + 재캡처 권고 |
 | 씬 이름 | slug 규칙(`S01_entrance`) 불일치 → WARN + rename 제안 |
@@ -74,7 +74,7 @@ $development-intake <project> [<source-folder>]
 | S01_entrance | 2560×1440 | 16:9 | pass | pass | 있음 | OK |
 | S02_side | 1600×1200 | 4:3 | warn | pass | 없음 | WARN (해상도) |
 
-재캡처 권고: S02_side (긴 변 1600px < 2000px — 진행 가능하나 grok 폴백 품질 저하)
+재캡처 권고: S02_side (긴 변 1600px < 2000px — 진행 가능하나 렌더 디테일 저하)
 manifest: assets/captures/{project}/manifest.json
 다음: $development-stylepack list → $development-render {project} all --pack overcast-photoreal
 ```
@@ -96,10 +96,10 @@ NOT-trigger:
 - "렌더 돌려줘" → `$development-render`
 - "팩 골라줘" / "새 스타일 만들어줘" → `$development-stylepack`
 - "도면 원본 보관해줘" → `70-private/<project>/`에 두고 `meta.md`만 작성 (커맨드 없음)
-- "SketchUp에서 어떻게 내보내?" → `30-docs/`·`scripts/sketchup/export_scenes.rb` 안내 (실행은 사용자 PC)
+- "SketchUp에서 어떻게 내보내?" → `30-docs/`·`scripts/sketchup/export_scenes.rb` 안내 (이 맥에도 SketchUp 2026이 있어 `open -a ... --args -RubyStartup`으로 실행 가능)
 
 ## 참조
 
 - `20-knowledge/capture-protocol.md` — 규약 정본 C1~C8
-- `scripts/sketchup/export_scenes.rb` — 사용자 PC용 export 스크립트
+- `scripts/sketchup/export_scenes.rb` — SketchUp export 스크립트 (맥·윈도우)
 - `70-private/README.md` — 클라이언트 원본 격리 규칙

@@ -12,3 +12,4 @@
 | 2026-09-14 | Deviation Table 7행 추가 (커맨드·폴더·팩·백엔드 정책·KB·70-private·미적용 옵션) | _meta/deviations.md | Custom Path 기록 의무 |
 | 2026-09-14 | E2E 실동 검증 후 render.py UA 헤더·실패 정리, qa_geometry 경보 조건 완화. demo-cafe 프로젝트(S01 grok+fix, S02 gpt) 산출 | scripts/render.py, scripts/qa_geometry.py | 실측 결함 수정 |
 | 2026-09-15 | 옵션 축 14종 확장 + 병합 규칙 + --list-options, 웹툴 패널 동적화(접이식·초기화·무작위 변주) | scripts/prompt_compose.py, 20-knowledge/stylepacks/OPTIONS.md, webtool/ | 스타일 다양성 부족 지적 반영 |
+| 2026-10-11 | 수강생 Codex 대응: development-image 스킬(Codex 내장 이미지 도구 렌더)+attach_render.py, render/fix/stylepack/intake 스킬·커맨드 개량(grok 자동 폴백 제거, 4:3 경고), render.py 비율 우선순위(캡처 > 팩 힌트)·certifi·Pillow 안내, export_scenes.rb 씬 전환 버그·비율 경고, SketchUp 2026 설치·demo-house 캡처, 문서 현행화(README·backends·capture-protocol·webtool·scripts-layer) | .agents/skills, .claude/commands, scripts/, 20-knowledge, 30-docs, README.md, AGENTS.md, CLAUDE.md | 건축사 Codex 과외 1회차 리허설 실측 결함 |

@@ -228,8 +228,9 @@ def run_full(a) -> dict:
     capture = ensure_capture(inp, a.project, a.shot)
     pack = prompt_compose.load_pack(a.pack)
     options = prompt_compose.parse_options(a.option)
-    # precedence: --aspect > --option aspect > pack aspect_hint > nearest ratio of the input ("auto")
-    aspect = a.aspect or options.get("aspect") or prompt_compose.pack_aspect(pack)
+    # precedence: --aspect > --option aspect > nearest ratio of the input capture.
+    # 팩의 aspect_hint는 캡처 비율을 덮지 않는다 — 16:9 캡처가 4:3 팩 힌트로 잘리던 문제 (2026-10-11).
+    aspect = a.aspect or options.get("aspect")
     if not aspect or str(aspect).lower() == "auto":
         aspect = guess_aspect(inp)
     options["aspect"] = aspect

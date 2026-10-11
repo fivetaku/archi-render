@@ -14,6 +14,8 @@ Claude per-command tool controls are not enforced by this skill; Codex sandbox a
 
 Standard. 기준 리비전(Rnn) 위에 마스크 영역만 재생성해 새 리비전을 만든다. 백엔드는 **grok만**(insane-router `/images/edits`, RGBA 알파 0 = 편집). gpt 경로는 마스크가 없다 (Fix Don't Regenerate).
 
+> 주의: grok 출력은 1152×864(4:3) 고정이다. 16:9 기준 렌더(gpt R)를 고치면 새 리비전의 비율이 바뀌고 좌우가 잘려, "마스크 밖은 그대로"를 눈으로 대조하기 어렵다. 실행 전에 이 점을 한 줄 알리고, 결과를 기준 렌더와 같은 크기로 나란히 보여 준다.
+
 ## 사용법
 
 ```text
@@ -25,7 +27,7 @@ $development-fix <project> <shot> --base Rnn --web          # 웹툴에서 마�
 
 ### Step 1: 기준 리비전과 마스크 확보
 
-- `--base`가 없으면 그 샷의 최신 리비전을 기본으로 잡고 확인을 받는다.
+- `--base`가 없으면 그 샷의 최신 리비전으로 진행하고, 어느 리비전을 기준으로 했는지 한 줄 알린다.
 - 마스크가 없거나 `--web`이면 `python3 webtool/server.py`를 안내한다(http://127.0.0.1:8765 — 렌더 열기 → 브러시 → 저장). 웹툴이 저장하는 마스크는 기준 렌더와 **1:1 해상도**의 RGBA PNG(알파 0 = 편집)다.
 - 사용자가 준 마스크가 흑백(흰=편집)이면 벤더 극성표(`20-knowledge/backends.md` § 마스크 극성)에 따라 RGBA 알파로 변환한 뒤 보낸다. 크기가 기준 렌더와 다르면 중단하고 다시 받는다.
 
@@ -49,7 +51,7 @@ python3 scripts/render.py fix --project <P> --shot <S> --base Rnn --mask <png> -
 gpt(pumasi `--ref`)에는 마스크 입력이 없음을 한 줄로 설명하고 두 갈래를 제시한다:
 
 1. **(추천) grok으로 마스크 수정** — 영역 밖은 그대로.
-2. **keep_fixed 재렌더** — `$development-render ... --backend gpt --option keep_fixed="<이미 승인된 요소 목록>"`로 이전 리비전을 `--ref`로 넘기고 "only change X" 꼬리를 붙여 전체를 다시 뽑는다. 영역 밖도 미세하게 흔들릴 수 있음을 고지한다.
+2. **keep_fixed 재렌더** — `$development-render ... --backend gpt --option keep_fixed="<이미 승인된 요소 목록>"`로 이전 리비전을 `--ref`로 넘기고 "only change X" 꼬리를 붙여 전체를 다시 뽑는다. 영역 밖도 미세하게 흔들릴 수 있음을 고지한다. 라우터 키가 없는 PC(수강생 Codex 앱)에서는 1번이 불가하므로 이 갈래를 `$development-image` 렌더 모드로 수행한다(기준 렌더를 입력 이미지로, "only change X" 지시).
 
 ### Step 5: 다음
 

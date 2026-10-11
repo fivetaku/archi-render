@@ -12,5 +12,5 @@
 
 ## 관례
 
-- 순수 stdlib (설치 의존 최소화). 의존이 불가피하면 README에 명시.
+- stdlib 우선 (설치 의존 최소화). 예외: `render.py`·`mask_convert.py`·`attach_render.py`는 Pillow 필요(`python3 -m pip install --user pillow`), HTTPS는 certifi가 있으면 그 인증서를 쓴다(python.org 설치본의 인증서 누락 대비).
 - 입력은 읽기 전용, 출력은 별도 경로. 원본 payload를 덮어쓰지 않는다.

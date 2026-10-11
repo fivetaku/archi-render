@@ -1,8 +1,9 @@
 # 캡처 규약 (SketchUp → assets/captures)
 
-> `/intake`가 검사하는 항목의 정본. SketchUp은 헤드리스 자동화가 안 되고 이 맥에 설치돼 있지 않으므로
-> (clm_001, clm_092) 사용자가 자기 PC에서 `scripts/sketchup/export_scenes.rb`를 1회 실행해 폴더를 덤프하고,
-> 그 폴더를 이 워크스페이스로 옮기는 "폴더 인입" 구조다.
+> `/intake`가 검사하는 항목의 정본. SketchUp에서 `scripts/sketchup/export_scenes.rb`를 1회 실행해 폴더를 덤프하고,
+> 그 폴더를 이 워크스페이스로 옮기는 "폴더 인입" 구조다. 2026-10-11부터 이 맥에도 SketchUp 2026.2가 설치돼 있고,
+> `open -a "/Applications/SketchUp 2026/SketchUp.app" --args -RubyStartup <script.rb>`로 실행할 수 있다(모델 창이 열린 뒤 스크립트가 돈다 — 첫 실행은 Trimble 로그인 필요).
+> 자동 생성 예시: `scripts/sketchup/examples/build_demo_house.rb` → `assets/captures/demo-house/`.
 
 ## 왜 규약이 필요한가
 
@@ -18,7 +19,7 @@ SketchUp에는 네이티브 뎁스맵 export가 없다 (clm_026). 백엔드가 �
 | C2 | 그림자 | **On**. 태양 각도는 씬마다 고정 | 위반 시 경고 |
 | C3 | 씬 잠금 | Scene(카메라) 저장·잠금. 같은 씬은 리비전 사이에 카메라가 바뀌지 않는다 | 씬 이름 누락 시 경고 |
 | C4 | 해상도 | **긴 변 2000px 이상** PNG. 4000px 초과는 불필요 | 미달 시 **경고(차단 아님)** — 사용자가 알고 진행 가능 |
-| C5 | 종횡비 | 씬별 고정. 납품 비율(16:9, 4:3, 3:2, 1:1 등)로 export 시점에 맞춘다 | 비표준 비율은 정보 표시, `--aspect`로 전달 |
+| C5 | 종횡비 | 씬별 고정. 납품 비율(16:9, 4:3, 3:2, 1:1 등)로 export 시점에 맞춘다. **export_scenes.rb는 화면(뷰포트) 비율을 그대로 쓰므로** 내보내기 전에 SketchUp 창 크기를 납품 비율에 맞춘다 — 울트라와이드 모니터 전체 화면이면 2000×479처럼 나온다(2026-10-11 실측) | 비표준 비율은 정보 표시, `--aspect`로 전달 |
 | C6 | 파일명 | `<project>/<shot>/capture.png`. shot은 씬 이름을 slug화 (예 `S01_entrance`) | 규칙 불일치 시 rename 제안 |
 | C7 | camera.json | **선택**. `{fov, eye, target, up, aspect, scene}` — 있으면 meta.json에 복사 | 없어도 진행 |
 | C8 | 배경 | 단색(흰/회색). 하늘 그라데이션·워터마크 끄기 | 위반 시 경고 |
